@@ -1,0 +1,101 @@
+---
+import { CacheHeaders, ONE_WEEK } from "cdn-cache-control";
+import { withCache } from "../lib/cache";
+import Parser from "rss-parser";
+
+export const prerender = false;
+
+type Book = {
+  title: string;
+  author?: string;
+  pubDate: string;
+  goodreadsLink: string;
+  image?: string;
+};
+
+const { userId, cacheTime = ONE_WEEK } = Astro.props;
+
+const isDev = import.meta.env.DEV;
+
+let book: Book | undefined;
+
+const cacheKey = new Request(`https://cache.internal/goodreads/${userId}`);
+
+// Goodreads returns a block of html, need to extract image
+// source for the book
+function extractImgSrc(html: string): string | undefined {
+  const match = html.match(/<img[^>]+src="([^"]+)"/);
+  return match?.[1];
+}
+
+function extractAuthor(html: string): string | undefined {
+  const match = html.match(/author:\s+([^<]+)<br/);
+  return match?.[1].trim();
+}
+
+// Fetch the user's currently reading book from GoodReads RSS feed
+async function getCurrentlyReading(): Promise<Book | undefined> {
+  const parser = new Parser();
+  const feed = await parser.parseURL(
+    `https://www.goodreads.com/review/list_rss/${userId}?shelf=currently-reading`,
+  );
+  const current = feed.items[0];
+
+  const fresh: Book | undefined = current
+    ? {
+        title: current.title!,
+        author: extractAuthor(current.content!),
+        pubDate: current.pubDate!,
+        goodreadsLink: current.link!,
+        image: extractImgSrc(current.content!),
+      }
+    : undefined;
+
+  return fresh;
+}
+
+try {
+  book = await withCache(cacheKey, getCurrentlyReading, {
+    isDev,
+    cacheTime,
+    ctx: Astro.locals.runtime.ctx,
+  });
+} catch (err) {
+  console.error("[📚 Goodreads error]", err);
+}
+
+if (book) {
+  new CacheHeaders()
+    .swr()
+    .ttl(cacheTime)
+    .tag(["book", `book-${userId}`])
+    .copyTo(Astro.response.headers);
+}
+---
+
+{
+  book && (
+    <a
+      href={book.goodreadsLink}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="group flex items-center gap-4 no-underline"
+    >
+      {book.image && (
+        <img
+          src={book.image}
+          alt={`Cover of ${book.title}`}
+          class="h-16 w-auto shrink-0 rounded-sm object-cover"
+        />
+      )}
+      <div class="min-w-0">
+        <p class="text-md truncate font-semibold text-zinc-800 transition-colors group-hover:text-teal-500 dark:text-zinc-100 dark:group-hover:text-teal-400">
+          {book.title}
+        </p>
+        <p class="mt-0.5 truncate text-xs text-zinc-500 dark:text-zinc-400">
+          {book.author && `by ${book.author}`}
+        </p>
+      </div>
+    </a>
+  )
+}

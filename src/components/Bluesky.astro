@@ -2,6 +2,7 @@
 import { BlueskyPost, type Post } from "@astro-community/astro-embed-bluesky";
 import { CacheHeaders, ONE_WEEK } from "cdn-cache-control";
 import { getAgent } from "../lib/bluesky";
+import { withCache } from "../lib/cache";
 
 export const prerender = false;
 
@@ -28,49 +29,18 @@ async function getFromBluesky(): Promise<Post | undefined> {
   return fresh;
 }
 
-// Return the cached post for this actor, or undefined if not cached.
-async function loadFromCache(): Promise<Post | undefined> {
-  // caches.open() is used instead of caches.default to avoid a type conflict
-  // between the DOM CacheStorage interface and the Cloudflare Workers class.
-  // Cloudflare's caches.default is equivalent to caches.open("default").
-  const cache = await caches.open("default");
-  const cached = await cache.match(cacheKey);
-
-  return cached ? ((await cached.json()) as Post) : undefined;
-}
-
-// Store the post in Cloudflare's cache for subsequent requests.
-async function cacheResponse(post: Post) {
-  const toCache = new Response(JSON.stringify(post), {
-    headers: { "Cache-Control": `public, max-age=${cacheTime}` },
-  });
-
-  const cache = await caches.open("default");
-  // for Cloudflare Workers; work is completed later...
-  Astro.locals.runtime.ctx.waitUntil(cache.put(cacheKey, toCache));
-}
-
-// Cache-first loader: return cached post if available,
-// otherwise fetch from API and cache the result.
-async function loadPost(): Promise<Post | undefined> {
-  if (isDev) return await getFromBluesky();
-
-  const cached = await loadFromCache();
-  if (cached) return cached;
-
-  const fresh = await getFromBluesky();
-  if (fresh) await cacheResponse(fresh);
-  return fresh;
-}
-
 try {
-  post = await loadPost();
+  post = await withCache(cacheKey, getFromBluesky, {
+    isDev,
+    cacheTime,
+    ctx: Astro.locals.runtime.ctx,
+  });
 } catch (err) {
   console.error("[🦋 Bluesky component]", err);
 }
 
 if (post) {
-  const headers = new CacheHeaders()
+  new CacheHeaders()
     .swr()
     .ttl(cacheTime)
     .tag(["posts", `post-${actor}`])
