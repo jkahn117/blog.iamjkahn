@@ -1,7 +1,7 @@
 ---
 import { CacheHeaders, ONE_WEEK } from "cdn-cache-control";
 import { withCache } from "../lib/cache";
-import Parser from "rss-parser";
+import { XMLParser } from "fast-xml-parser";
 
 export const prerender = false;
 
@@ -35,23 +35,23 @@ function extractAuthor(html: string): string | undefined {
 
 // Fetch the user's currently reading book from GoodReads RSS feed
 async function getCurrentlyReading(): Promise<Book | undefined> {
-  const parser = new Parser();
-  const feed = await parser.parseURL(
+  const res = await fetch(
     `https://www.goodreads.com/review/list_rss/${userId}?shelf=currently-reading`,
   );
-  const current = feed.items[0];
+  const xml = await res.text();
+  const parser = new XMLParser({ ignoreAttributes: false });
+  const feed = parser.parse(xml);
+  const current = feed?.rss?.channel?.item?.[0] ?? feed?.rss?.channel?.item;
 
-  const fresh: Book | undefined = current
-    ? {
-        title: current.title!,
-        author: extractAuthor(current.content!),
-        pubDate: current.pubDate!,
-        goodreadsLink: current.link!,
-        image: extractImgSrc(current.content!),
-      }
-    : undefined;
+  if (!current) return undefined;
 
-  return fresh;
+  return {
+    title: current.title,
+    author: current["author_name"] ?? extractAuthor(current.description ?? ""),
+    pubDate: current.pubDate,
+    goodreadsLink: current.link,
+    image: extractImgSrc(current.description ?? ""),
+  };
 }
 
 try {
