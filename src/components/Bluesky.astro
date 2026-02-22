@@ -9,37 +9,62 @@ const { actor, cacheTime = ONE_WEEK } = Astro.props;
 
 let post: Post | undefined;
 
+const isDev = import.meta.env.DEV;
+
 // cache key - just needs to be unique
 const cacheKey = new Request(`https://cache.internal/bluesky/${actor}`);
 
-try {
-  // 1. check Cloudflare's Worker cache
+// Fetch the actor's most recent post from the Bluesky API.
+async function getFromBluesky(): Promise<Post | undefined> {
+  const { BLUESKY_APP_PASSWORD } = Astro.locals.runtime.env;
+  const agent = await getAgent(
+    import.meta.env.PUBLIC_BLUESKY_HANDLE,
+    BLUESKY_APP_PASSWORD,
+  );
+  const { data } = await agent.getAuthorFeed({ actor, limit: 1 });
+  const fresh = data.feed[0]?.post as Post | undefined;
+  console.log(`🦋 Latest post retrieved for ${actor}`);
+
+  return fresh;
+}
+
+// Return the cached post for this actor, or undefined if not cached.
+async function loadFromCache(): Promise<Post | undefined> {
   // caches.open() is used instead of caches.default to avoid a type conflict
   // between the DOM CacheStorage interface and the Cloudflare Workers class.
   // Cloudflare's caches.default is equivalent to caches.open("default").
   const cache = await caches.open("default");
   const cached = await cache.match(cacheKey);
-  if (cached) {
-    post = (await cached.json()) as Post;
-  } else {
-    // 2. retrieve from bsky API if needed
-    const { BLUESKY_APP_PASSWORD } = Astro.locals.runtime.env;
-    const agent = await getAgent(
-      import.meta.env.PUBLIC_BLUESKY_HANDLE,
-      BLUESKY_APP_PASSWORD,
-    );
-    const { data } = await agent.getAuthorFeed({ actor, limit: 1 });
-    post = data.feed[0]?.post as Post | undefined;
-    console.log(`🦋 Latest post retrieved for ${actor}`);
 
-    if (post) {
-      // 3. store in cache without blocking the response
-      const toCache = new Response(JSON.stringify(post), {
-        headers: { "Cache-Control": `public, max-age=${cacheTime}` },
-      });
-      Astro.locals.runtime.ctx.waitUntil(cache.put(cacheKey, toCache));
-    }
-  }
+  return cached ? ((await cached.json()) as Post) : undefined;
+}
+
+// Store the post in Cloudflare's cache for subsequent requests.
+async function cacheResponse(post: Post) {
+  const toCache = new Response(JSON.stringify(post), {
+    headers: { "Cache-Control": `public, max-age=${cacheTime}` },
+  });
+
+  const cache = await caches.open("default");
+  // for Cloudflare Workers; work is completed later...
+  Astro.locals.runtime.ctx.waitUntil(cache.put(cacheKey, toCache));
+}
+
+// Cache-first loader: return cached post if available,
+// otherwise fetch from API and cache the result.
+async function loadPost(): Promise<Post | undefined> {
+  if (isDev) return await getFromBluesky();
+
+  const cached = await loadFromCache();
+  if (cached) return cached;
+
+  const fresh = await getFromBluesky();
+  if (fresh) await cacheResponse(fresh);
+  return fresh;
+}
+
+try {
+  post = await loadPost();
 } catch (err) {
   console.error("[🦋 Bluesky component]", err);
 }
