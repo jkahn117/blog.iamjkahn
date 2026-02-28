@@ -19,7 +19,14 @@ function reactDomEdgeAlias() {
 export default defineConfig({
   site: 'https://blog.iamjkahn.com',
   output: 'server',
-  adapter: cloudflare({ imageService: 'compile' }),
+  adapter: cloudflare({
+    imageService: 'compile',
+    routes: {
+      extend: {
+        exclude: [{ pattern: '/sitemap-index.xml' }, { pattern: '/sitemap-*.xml' }],
+      },
+    },
+  }),
   integrations: [react(), sitemap()],
   vite: {
     plugins: [tailwindcss(), reactDomEdgeAlias()],
