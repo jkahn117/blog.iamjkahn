@@ -39,12 +39,14 @@ if (style === "link") {
 
 const now = new Date();
 const date = {
-  year: await input({ message: "Year: ", default: now.getFullYear() }),
-  month: await input({ message: "Month: ", default: now.getMonth() + 1 }),
-  date: await input({ message: "Date: ", default: now.getDate() })
+  year: await input({ message: "Year: ", default: String(now.getFullYear()) }),
+  month: await input({ message: "Month: ", default: String(now.getMonth() + 1).padStart(2, "0") }),
+  date: await input({ message: "Date: ", default: String(now.getDate()).padStart(2, "0") })
 };
 
-const postSlug = `${date.year}-${date.month}-${date.date}-${titleSlug}`;
+const paddedMonth = String(date.month).padStart(2, "0");
+const paddedDay = String(date.date).padStart(2, "0");
+const postSlug = `${date.year}-${paddedMonth}-${paddedDay}-${titleSlug}`;
 
 // check for existing file
 if (fs.existsSync(`./src/content/blog/${postSlug}.md`)) {
@@ -52,7 +54,7 @@ if (fs.existsSync(`./src/content/blog/${postSlug}.md`)) {
 }
 
 let frontMatter = `---
-date: "${new Date(date.year, date.month, date.date).toISOString()}"
+date: "${new Date(date.year, Number(date.month) - 1, date.date).toISOString()}"
 title: "${title}"
 author: "Josh"
 summary: ""
