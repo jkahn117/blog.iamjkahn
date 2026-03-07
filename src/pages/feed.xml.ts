@@ -5,7 +5,7 @@ import type { APIContext } from 'astro'
 export const prerender = true
 
 export async function GET(context: APIContext) {
-  const allPosts = await getCollection('blog')
+  const allPosts = await getCollection('blog', ({ data }) => data.publish !== false)
   const posts = allPosts
     .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
     .slice(0, 5)

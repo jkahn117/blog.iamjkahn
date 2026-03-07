@@ -9,6 +9,7 @@ const blog = defineCollection({
     author: z.string().optional(),
     summary: z.string().optional(),
     redirect_link: z.string().url().optional(),
+    publish: z.boolean().optional(),
     // Legacy Blogger fields - kept optional, ignored in templates
     layout: z.string().optional(),
     tags: z.union([z.string(), z.array(z.string())]).nullish(),
