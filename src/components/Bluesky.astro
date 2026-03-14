@@ -1,6 +1,7 @@
 ---
 import { BlueskyPost, type Post } from "@astro-community/astro-embed-bluesky";
 import { CacheHeaders, ONE_WEEK } from "cdn-cache-control";
+import { env } from "cloudflare:workers";
 import { getAgent } from "../lib/bluesky";
 import { withCache } from "../lib/cache";
 
@@ -17,10 +18,9 @@ const cacheKey = new Request(`https://cache.internal/bluesky/${actor}`);
 
 // Fetch the actor's most recent post from the Bluesky API.
 async function getFromBluesky(): Promise<Post | undefined> {
-  const { BLUESKY_APP_PASSWORD } = Astro.locals.runtime.env;
   const agent = await getAgent(
     import.meta.env.PUBLIC_BLUESKY_HANDLE,
-    BLUESKY_APP_PASSWORD,
+    env.BLUESKY_APP_PASSWORD,
   );
   const { data } = await agent.getAuthorFeed({ actor, limit: 1 });
   const fresh = data.feed[0]?.post as Post | undefined;
@@ -33,7 +33,7 @@ try {
   post = await withCache(cacheKey, getFromBluesky, {
     isDev,
     cacheTime,
-    ctx: Astro.locals.runtime.ctx,
+    ctx: Astro.locals.cfContext,
   });
 } catch (err) {
   console.error("[🦋 Bluesky component]", err);

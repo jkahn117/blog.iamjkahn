@@ -58,7 +58,7 @@ try {
   book = await withCache(cacheKey, getCurrentlyReading, {
     isDev,
     cacheTime,
-    ctx: Astro.locals.runtime.ctx,
+    ctx: Astro.locals.cfContext,
   });
 } catch (err) {
   console.error("[📚 Goodreads error]", err);

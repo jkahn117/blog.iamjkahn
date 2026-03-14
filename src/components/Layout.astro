@@ -9,7 +9,7 @@ import Footer from '@/components/Footer.astro'
   </div>
 </div>
 <div class="relative flex w-full flex-col">
-  <Header currentPath={Astro.url.pathname.replace(/\/$/, '') || '/'} client:load />
+  <Header currentPath={Astro.url.pathname.replace(/\/$/, '') || '/'} client:only="react" />
   <main class="flex-auto"><slot /></main>
   <Footer />
 </div>

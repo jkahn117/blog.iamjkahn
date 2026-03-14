@@ -1,0 +1,11 @@
+{
+  // Dev-only config for astro dev / getPlatformProxy — no main/assets needed
+  "name": "iamjkahn-blog",
+  "compatibility_date": "2025-01-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "SITE_URL": "https://blog.iamjkahn.com",
+    "PUBLIC_BLUESKY_HANDLE": "iamjkahn.com",
+    "CDN": "cloudflare"
+  }
+}
