@@ -20,7 +20,6 @@ export default defineConfig({
   site: 'https://blog.iamjkahn.com',
   output: 'server',
   adapter: cloudflare({
-    configPath: './wrangler.dev.jsonc',
     imageService: 'compile',
   }),
   integrations: [react(), sitemap()],
