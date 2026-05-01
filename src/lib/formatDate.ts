@@ -1,7 +1,9 @@
-import { format, isMatch, parse } from 'date-fns';
+import { format, isMatch, parse } from "date-fns";
 
 export function formatDate(dateStr: string | Date): string {
-  if (typeof dateStr !== "string") { dateStr = dateStr.toISOString() }
+  if (typeof dateStr !== "string") {
+    dateStr = dateStr.toISOString();
+  }
 
   let date = new Date();
 
@@ -19,5 +21,5 @@ export function formatDate(dateStr: string | Date): string {
   }
 
   // September 9, 2020
-  return format(date, "MMMM d, yyyy")
+  return format(date, "MMMM d, yyyy");
 }

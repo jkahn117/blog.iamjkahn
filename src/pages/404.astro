@@ -1,0 +1,23 @@
+---
+export const prerender = true;
+
+import Base from "@/layouts/Base.astro";
+import SimpleLayout from "@/components/SimpleLayout.astro";
+---
+
+<Base
+  title="Page not found"
+  description="The page you're looking for doesn't exist."
+>
+  <SimpleLayout
+    title="Page not found"
+    intro="Sorry, the page you're looking for doesn't exist or has been moved."
+  >
+    <a
+      href="/"
+      class="inline-flex items-center gap-2 text-sm font-medium text-teal-500 hover:text-teal-600 dark:hover:text-teal-400"
+    >
+      &larr; Back to home
+    </a>
+  </SimpleLayout>
+</Base>

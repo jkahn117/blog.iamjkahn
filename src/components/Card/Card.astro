@@ -1,7 +1,7 @@
 ---
-const { as: Component = 'div', class: className } = Astro.props
+const { as: Component = "div", class: className } = Astro.props;
 ---
 
-<Component class:list={['group relative flex flex-col items-start', className]}>
+<Component class:list={["group relative flex flex-col items-start", className]}>
   <slot />
 </Component>

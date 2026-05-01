@@ -1,26 +1,29 @@
 ---
-export const prerender = true
+export const prerender = true;
 
-import { getCollection, render } from 'astro:content'
-import Base from '@/layouts/Base.astro'
-import PostLayout from '@/components/PostLayout.astro'
+import { getCollection, render } from "astro:content";
+import Base from "@/layouts/Base.astro";
+import PostLayout from "@/components/PostLayout.astro";
 
 export async function getStaticPaths() {
-  const posts = await getCollection('blog', ({ data }) => data.publish !== false)
+  const posts = await getCollection(
+    "blog",
+    ({ data }) => data.publish !== false,
+  );
   return posts.map((post) => {
     // post.id = "2024-12-12-my-post-slug.md"
     // Strip the day component: YYYY-MM-DD-slug → year/month/slug
-    const [year, month, , ...rest] = post.id.replace(/\.md$/, '').split('-')
-    const slug = rest.join('-')
+    const [year, month, , ...rest] = post.id.replace(/\.md$/, "").split("-");
+    const slug = rest.join("-");
     return {
       params: { year, month, slug },
       props: { post },
-    }
-  })
+    };
+  });
 }
 
-const { post } = Astro.props
-const { Content } = await render(post)
+const { post } = Astro.props;
+const { Content } = await render(post);
 ---
 
 <Base title={post.data.title} description={post.data.summary}>
