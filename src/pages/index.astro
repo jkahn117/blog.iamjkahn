@@ -15,6 +15,7 @@ import GitHubIcon from "@/components/icons/GitHubIcon.astro";
 import LinkedInIcon from "@/components/icons/LinkedInIcon.astro";
 import XIcon from "@/components/icons/XIcon.astro";
 import { formatDate } from "@/lib/formatDate.ts";
+import { getPostSlug } from "@/lib/getPostSlug.ts";
 import logoCloudflare from "@/images/logos/cloudflare.svg";
 import logoStripe from "@/images/logos/stripe.svg";
 import logoAmazon from "@/images/logos/amazon.svg";
@@ -39,11 +40,6 @@ const allPosts = await getCollection(
 const posts = allPosts
   .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
   .slice(0, 4);
-
-function getPostSlug(post: (typeof posts)[number]) {
-  const [year, month, , ...rest] = post.id.replace(/\.md$/, "").split("-");
-  return `${year}/${month}/${rest.join("-")}`;
-}
 
 const resume = [
   {
@@ -180,7 +176,7 @@ const rotations = [
           posts.map((post) => (
             <Card as="article">
               <CardTitle
-                href={post.data.redirect_link ?? `/posts/${getPostSlug(post)}`}
+                href={post.data.redirect_link ?? `/posts/${getPostSlug(post.id)}`}
               >
                 {post.data.title}
               </CardTitle>
