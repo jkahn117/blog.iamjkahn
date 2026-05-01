@@ -117,14 +117,14 @@ function MobileNavigation({
           <MenuHeading className="flex flex-row-reverse items-center justify-between">
             <MenuItem>
               {({ close }) => (
-                <a
+                <button
+                  type="button"
                   className="-m-1 p-1"
                   aria-label="Close menu"
-                  href="#"
                   onClick={close}
                 >
                   <CloseIcon className="h-6 w-6 text-zinc-500 dark:text-zinc-400" />
-                </a>
+                </button>
               )}
             </MenuItem>
           </MenuHeading>

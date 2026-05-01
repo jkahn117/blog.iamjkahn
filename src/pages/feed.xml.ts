@@ -1,6 +1,7 @@
 import rss from "@astrojs/rss";
 import type { APIContext } from "astro";
 import { getCollection } from "astro:content";
+import { getPostSlug } from "@/lib/getPostSlug.ts";
 
 export const prerender = true;
 
@@ -19,11 +20,9 @@ export async function GET(context: APIContext) {
       "Random musings of a solutions architect, speaker, technology guy, dad",
     site: context.site!,
     items: posts.map((post) => {
-      const [year, month, , ...rest] = post.id.replace(/\.md$/, "").split("-");
-      const slug = rest.join("-");
       const link =
         post.data.redirect_link ??
-        `${context.site}posts/${year}/${month}/${slug}`;
+        `${context.site}posts/${getPostSlug(post.id)}`;
 
       return {
         title: post.data.title,

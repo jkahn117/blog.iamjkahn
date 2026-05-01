@@ -7,7 +7,6 @@
     "dev": "mkdir -p dist && astro dev",
     "build": "wrangler types && astro build",
     "preview": "wrangler types && astro preview",
-    "lint": "eslint .",
     "create": "node ./create-post.mjs"
   },
   "dependencies": {

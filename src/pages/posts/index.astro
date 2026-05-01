@@ -10,6 +10,7 @@ import CardEyebrow from "@/components/Card/CardEyebrow.astro";
 import CardDescription from "@/components/Card/CardDescription.astro";
 import CardCta from "@/components/Card/CardCta.astro";
 import { formatDate } from "@/lib/formatDate.ts";
+import { getPostSlug } from "@/lib/getPostSlug.ts";
 
 const allPosts = await getCollection(
   "blog",
@@ -18,11 +19,6 @@ const allPosts = await getCollection(
 const posts = allPosts.sort(
   (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
 );
-
-function getPostSlug(post: (typeof posts)[number]) {
-  const [year, month, , ...rest] = post.id.replace(/\.md$/, "").split("-");
-  return `${year}/${month}/${rest.join("-")}`;
-}
 ---
 
 <Base
@@ -43,7 +39,8 @@ function getPostSlug(post: (typeof posts)[number]) {
               <Card class="md:col-span-3">
                 <CardTitle
                   href={
-                    post.data.redirect_link ?? `/posts/${getPostSlug(post)}`
+                    post.data.redirect_link ??
+                    `/posts/${getPostSlug(post.id)}`
                   }
                 >
                   {post.data.title}

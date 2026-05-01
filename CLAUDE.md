@@ -15,7 +15,6 @@ When creating a new feature, conduct research based on the prompt provided. Init
 - `pnpm dev` — Start dev server
 - `pnpm build` — Runs `wrangler types && astro build` (regenerates `worker-configuration.d.ts` first)
 - `pnpm preview` — Preview production build locally (uses Wrangler)
-- `pnpm lint` — Run ESLint
 - `pnpm create` — Interactive CLI to scaffold a new blog post (prompts for title, slug, date, local vs link post)
 - `npx prettier --write <file>` — Format a file (uses prettier-plugin-astro and prettier-plugin-tailwindcss)
 
