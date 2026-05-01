@@ -23,7 +23,13 @@ const { post } = Astro.props
 const { Content } = await render(post)
 ---
 
-<Base title={post.data.title} description={post.data.summary}>
+<Base
+  title={post.data.title}
+  description={post.data.summary}
+  ogType="article"
+  publishedDate={post.data.date.toISOString()}
+  author={post.data.author}
+>
   <PostLayout post={post}>
     <Content />
   </PostLayout>
