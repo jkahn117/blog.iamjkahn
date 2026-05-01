@@ -5,11 +5,15 @@ import "@/css/tailwind.css";
 const {
   title = "Josh Kahn - Solutions architect, speaker, technology guy, dad",
   description = "I'm Josh, a technology guy based in Chicago, IL.",
+  ogType = "website",
+  publishedDate,
+  author,
 } = Astro.props;
 
 const siteUrl = import.meta.env.PUBLIC_SITE_URL ?? "https://blog.iamjkahn.com";
 const analyticsUrl = import.meta.env.PUBLIC_ANALYTICS_URL;
 const fullTitle = title.endsWith("Josh Kahn") ? title : `${title} - Josh Kahn`;
+const canonicalUrl = new URL(Astro.url.pathname, siteUrl).href;
 ---
 
 <html lang="en" class="h-full antialiased">
@@ -18,6 +22,26 @@ const fullTitle = title.endsWith("Josh Kahn") ? title : `${title} - Josh Kahn`;
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{fullTitle}</title>
     <meta name="description" content={description} />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:site_name" content="blog.iamjkahn.com" />
+    <meta property="og:type" content={ogType} />
+    {ogType === "article" && publishedDate && (
+      <meta property="article:published_time" content={publishedDate} />
+    )}
+    {ogType === "article" && author && (
+      <meta property="article:author" content={author} />
+    )}
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={fullTitle} />
+    <meta name="twitter:description" content={description} />
+
+    <link rel="canonical" href={canonicalUrl} />
     <link rel="icon" href="/favicon.ico" />
     <link rel="sitemap" href="/sitemap-index.xml" />
     <link
