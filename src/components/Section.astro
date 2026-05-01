@@ -1,6 +1,9 @@
 ---
-const { title } = Astro.props
-const id = title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+const { title } = Astro.props;
+const id = title
+  .toLowerCase()
+  .replace(/\s+/g, "-")
+  .replace(/[^a-z0-9-]/g, "");
 ---
 
 <section

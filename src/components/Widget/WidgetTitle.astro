@@ -1,16 +1,20 @@
 ---
-import type { HTMLAttributes } from 'astro/types';
+import type { HTMLAttributes } from "astro/types";
 
 interface Props extends HTMLAttributes<"h2"> {
-  class?: string
-  icon?: any
+  class?: string;
+  icon?: any;
 }
 
-const { icon: Icon, class: className } = Astro.props as Props
+const { icon: Icon, class: className } = Astro.props as Props;
 ---
 
-<h2 class:list={["pb-6 flex items-center gap-2 text-md font-semibold text-zinc-900 dark:text-zinc-100", className]}>
+<h2
+  class:list={[
+    "text-md flex items-center gap-2 pb-6 font-semibold text-zinc-900 dark:text-zinc-100",
+    className,
+  ]}
+>
   {Icon && <Icon className="h-6 w-6 mr-2" />}
   <slot />
 </h2>
-

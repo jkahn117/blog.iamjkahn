@@ -27,11 +27,16 @@ const fullTitle = title.endsWith("Josh Kahn") ? title : `${title} - Josh Kahn`;
       href={`${siteUrl}/feed.xml`}
     />
 
-    <script
-      id="counterscale-script"
-      data-site-id="blog.iamjkahn"
-      src={analyticsUrl}
-      defer></script>
+    {
+      analyticsUrl && (
+        <script
+          id="counterscale-script"
+          data-site-id="blog.iamjkahn"
+          src={analyticsUrl}
+          defer
+        />
+      )
+    }
 
     <!-- Dark mode: apply saved preference before first paint to prevent flash -->
     <script is:inline>

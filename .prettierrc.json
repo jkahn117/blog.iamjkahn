@@ -20,6 +20,8 @@
     }
   ],
   "bracketSpacing": true,
+  "semi": true,
+  "singleQuote": false,
   "tabWidth": 2,
   "tailwindFunctions": ["clsx"],
   "tailwindStylesheet": "./src/css/tailwind.css",

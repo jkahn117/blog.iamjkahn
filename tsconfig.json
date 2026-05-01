@@ -7,12 +7,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": [
-    ".astro/types.d.ts",
-    "src/**/*",
-    "worker-configuration.d.ts"
-  ],
-  "exclude": [
-    "dist"
-  ]
+  "include": [".astro/types.d.ts", "src/**/*", "worker-configuration.d.ts"],
+  "exclude": ["dist"]
 }
