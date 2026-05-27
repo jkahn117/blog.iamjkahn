@@ -2,7 +2,7 @@
 date: "2024-12-12T06:00:00.000Z"
 title: "Exploring AWS Lambda and Amazon Aurora DSQL with SnapStart for Python"
 author: "Josh"
-summary: ""
+summary: "A hands-on walkthrough of building an AWS Lambda function with Amazon Aurora DSQL and SnapStart for Python, announced at AWS re:Invent 2024."
 ---
 
 Just back from AWS re:Invent and excited to dive into some of the newly announced updates! In this article, I'll walk you through building an [AWS Lambda](https://aws.amazon.com/lambda/) function that manages data in the *public preview* of [Amazon Aurora DSQL](https://aws.amazon.com/rds/aurora/dsql). I’ll also show you how to enable the new [SnapStart for Python](https://aws.amazon.com/blogs/aws/aws-lambda-snapstart-for-python-and-net-functions-is-now-generally-available/).
