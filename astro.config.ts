@@ -19,6 +19,7 @@ function reactDomEdgeAlias() {
 export default defineConfig({
   site: "https://blog.iamjkahn.com",
   output: "server",
+  trailingSlash: "never",
   adapter: cloudflare({
     imageService: "compile",
   }),

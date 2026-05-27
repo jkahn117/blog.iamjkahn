@@ -13,7 +13,11 @@ const {
 const siteUrl = import.meta.env.PUBLIC_SITE_URL ?? "https://blog.iamjkahn.com";
 const analyticsUrl = import.meta.env.PUBLIC_ANALYTICS_URL;
 const fullTitle = title.endsWith("Josh Kahn") ? title : `${title} - Josh Kahn`;
-const canonicalUrl = new URL(Astro.url.pathname, siteUrl).href;
+const canonicalPathname =
+  Astro.url.pathname !== "/" && Astro.url.pathname.endsWith("/")
+    ? Astro.url.pathname.slice(0, -1)
+    : Astro.url.pathname;
+const canonicalUrl = new URL(canonicalPathname, siteUrl).href;
 ---
 
 <html lang="en" class="h-full antialiased">
