@@ -11,7 +11,7 @@ import type { MiddlewareHandler } from "astro";
  */
 export const onRequest: MiddlewareHandler = ({ request, redirect }, next) => {
   const url = new URL(request.url);
-  const match = url.pathname.match(/^\/(\d{4})\/(\d{2})\/(.+?)(?:\.html)?$/);
+  const match = url.pathname.match(/^\/(\d{4})\/(\d{2})\/([^/]+?)(?:\.html)?$/);
   if (match) {
     return redirect(`/posts/${match[1]}/${match[2]}/${match[3]}`, 301);
   }
