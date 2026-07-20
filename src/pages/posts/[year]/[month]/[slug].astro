@@ -4,6 +4,7 @@ export const prerender = true;
 import { getCollection, render } from "astro:content";
 import Base from "@/layouts/Base.astro";
 import PostLayout from "@/components/PostLayout.astro";
+import { getPostSlug } from "@/lib/getPostSlug.ts";
 
 export async function getStaticPaths() {
   const posts = await getCollection(
@@ -11,10 +12,7 @@ export async function getStaticPaths() {
     ({ data }) => data.publish !== false && !data.redirect_link,
   );
   return posts.map((post) => {
-    // post.id = "2024-12-12-my-post-slug.md"
-    // Strip the day component: YYYY-MM-DD-slug → year/month/slug
-    const [year, month, , ...rest] = post.id.replace(/\.md$/, "").split("-");
-    const slug = rest.join("-");
+    const [year, month, slug] = getPostSlug(post.id).split("/");
     return {
       params: { year, month, slug },
       props: { post },
