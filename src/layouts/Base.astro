@@ -1,6 +1,16 @@
 ---
 import Layout from "@/components/Layout.astro";
 import "@/css/tailwind.css";
+import avatarImage from "@/images/avatar.jpg";
+
+interface Props {
+  title?: string;
+  description?: string;
+  ogType?: "website" | "article";
+  publishedDate?: string;
+  author?: string;
+  image?: string;
+}
 
 const {
   title = "Josh Kahn - Solutions architect, speaker, technology guy, dad",
@@ -8,16 +18,18 @@ const {
   ogType = "website",
   publishedDate,
   author,
+  image = avatarImage.src,
 } = Astro.props;
 
 const siteUrl = import.meta.env.PUBLIC_SITE_URL ?? "https://blog.iamjkahn.com";
 const analyticsUrl = import.meta.env.PUBLIC_ANALYTICS_URL;
-const fullTitle = title.endsWith("Josh Kahn") ? title : `${title} - Josh Kahn`;
+const fullTitle = title.includes("Josh Kahn") ? title : `${title} - Josh Kahn`;
 const canonicalPathname =
   Astro.url.pathname !== "/" && Astro.url.pathname.endsWith("/")
     ? Astro.url.pathname.slice(0, -1)
     : Astro.url.pathname;
 const canonicalUrl = new URL(canonicalPathname, siteUrl).href;
+const ogImageUrl = new URL(image, siteUrl).href;
 ---
 
 <html lang="en" class="h-full antialiased">
@@ -33,6 +45,7 @@ const canonicalUrl = new URL(canonicalPathname, siteUrl).href;
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:site_name" content="blog.iamjkahn.com" />
     <meta property="og:type" content={ogType} />
+    <meta property="og:image" content={ogImageUrl} />
     {ogType === "article" && publishedDate && (
       <meta property="article:published_time" content={publishedDate} />
     )}
@@ -44,6 +57,7 @@ const canonicalUrl = new URL(canonicalPathname, siteUrl).href;
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content={fullTitle} />
     <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageUrl} />
 
     <link rel="canonical" href={canonicalUrl} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />

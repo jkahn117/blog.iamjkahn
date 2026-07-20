@@ -20,6 +20,7 @@ export default defineConfig({
   site: "https://blog.iamjkahn.com",
   output: "server",
   trailingSlash: "never",
+  prefetch: true,
   adapter: cloudflare({
     imageService: "compile",
   }),
