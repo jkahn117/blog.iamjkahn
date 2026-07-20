@@ -1,6 +1,12 @@
 ---
 import clsx from "clsx";
 
+interface Props {
+  as?: keyof JSX.IntrinsicElements;
+  decorate?: boolean;
+  class?: string;
+}
+
 const {
   as: Component = "p",
   decorate = false,

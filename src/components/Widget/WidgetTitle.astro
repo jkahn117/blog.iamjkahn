@@ -1,12 +1,14 @@
 ---
 import type { HTMLAttributes } from "astro/types";
 
+type IconComponent = (props: { className?: string }) => any;
+
 interface Props extends HTMLAttributes<"h2"> {
   class?: string;
-  icon?: any;
+  icon?: IconComponent;
 }
 
-const { icon: Icon, class: className } = Astro.props as Props;
+const { icon: Icon, class: className } = Astro.props;
 ---
 
 <h2

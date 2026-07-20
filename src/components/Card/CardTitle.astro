@@ -1,6 +1,11 @@
 ---
 import CardLink from "./Link.astro";
 
+interface Props {
+  as?: keyof JSX.IntrinsicElements;
+  href?: string;
+}
+
 const { as: Component = "h2", href } = Astro.props;
 ---
 

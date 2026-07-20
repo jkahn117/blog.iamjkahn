@@ -1,7 +1,12 @@
 ---
 import Container from "@/components/Container.astro";
 import Prose from "@/components/Prose.astro";
+import type { CollectionEntry } from "astro:content";
 import { formatDate } from "@/lib/formatDate.ts";
+
+interface Props {
+  post: CollectionEntry<"blog">;
+}
 
 const { post } = Astro.props;
 ---

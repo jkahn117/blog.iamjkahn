@@ -1,4 +1,9 @@
 ---
+interface Props {
+  as?: keyof JSX.IntrinsicElements;
+  class?: string;
+}
+
 const { as: Component = "div", class: className } = Astro.props;
 ---
 
