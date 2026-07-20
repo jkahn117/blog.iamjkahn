@@ -53,9 +53,13 @@ if (fs.existsSync(`./src/content/blog/${postSlug}.md`)) {
   throw "Post with this slug already exists"
 }
 
+function escapeYamlString(value) {
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
 let frontMatter = `---
 date: "${new Date(date.year, Number(date.month) - 1, date.date).toISOString()}"
-title: "${title}"
+title: "${escapeYamlString(title)}"
 author: "Josh"
 summary: ""
 `;
