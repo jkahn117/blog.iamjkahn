@@ -7,7 +7,7 @@ summary: "Customers kept asking for a governed space to host the apps their peop
 
 Earlier this summer, I kept having the same conversation with customers across different industries — manufacturing, financial services, higher education. The discussions usually started with agentic use cases or vibe coding, but they kept tilting toward the same question: when everyone can build, where do you host the applications?
 
-These customers wanted to give their students or employees a governed, trusted space to host applications — whether those apps were fully vibe-coded, AI-assisted, or written by hand. But these applications are often short-lived and/or lightly-used. In a couple of cases, the customer needed to host a business-sensitive prototype behind a secure login, maintainalbe by a central IT team. No EC2 instance, no S3 bucket, no infrastructure to babysit.
+These customers wanted to give their students or employees a governed, trusted space to host applications — whether those apps were fully vibe-coded, AI-assisted, or written by hand. But these applications are often short-lived and/or lightly-used. In a couple of cases, the customer needed to host a business-sensitive prototype behind a secure login, maintainable by a central IT team. No EC2 instance, no S3 bucket, no infrastructure to babysit.
 
 Eventually I started drawing. A simple diagram showing a control plane and a data plane for a platform that would let these organizations provide a governed deployment experience. The idea was that you could give your coding assistant a set of skills and simple tools, and it could publish applications into an environment the platform controlled.
 
