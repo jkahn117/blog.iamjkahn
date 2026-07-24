@@ -2,7 +2,7 @@
 date: "2026-05-27T05:00:00.000Z"
 title: "Building background agents on Cloudflare"
 author: "Josh"
-summary: ""
+summary: "The agent loop — receive task, research, edit, test, iterate — is a hybrid workflow that most engineering infrastructure cannot support. I break down the convergent architecture emerging across the industry and map it to Cloudflare primitives for building background agents."
 ---
 
 Over the past months, we’ve seen a dramatic increase in the use of coding agents like Claude Code and Cursor. The harnesses for these agents fit well within the traditional developer workflow: an inner loop of edit → build → test → debug complemented by an outer loop of pull request → code review → integration → deploy.
