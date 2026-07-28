@@ -2,7 +2,7 @@
 date: "2026-07-28T17:00:00.000Z"
 title: "Taking a route lookup off the hot path with Workers Cache"
 author: "Josh"
-summary: "In a governed deployment architecture, every tenant request passes through a dispatch Worker that resolves a slug to a script name. That lookup hits a Durable Object on every request. I used Workers Cache to take it off the hot path. One constraint shaped the design."
+summary: "Building a multi-tenant platform on Workers for Platforms requires the dispatch Worker to resolve some value to a script name on every request. In my governed deployment architecture, that lookup requires a database read on a Durable Object. In this post, I explore how I used Workers Cache to take the database read off the hot path."
 ---
 
 In [my last post](/posts/2026/07/everyone-can-build-an-app-now-where-does-it-go), I wrote about building a [governed deployment architecture](https://github.com/jkahn117/governed-deployment-architecture) (GDA) on Cloudflare. GDA is a platform for hosting tenant apps behind your own policies and controls. The control plane is the hardest part of this type of platform. Its design depends on the organization, so your decisions may look very different from mine.
