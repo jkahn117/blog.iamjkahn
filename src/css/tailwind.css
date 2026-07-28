@@ -45,6 +45,7 @@
   --tw-prose-counters: #18181b;
   --tw-prose-bullets: #18181b;
   --tw-prose-hr: #f4f4f5;
+  --tw-prose-quotes: #3f3f46;
   --tw-prose-quote-borders: #e4e4e7;
   --tw-prose-captions: #a1a1aa;
   --tw-prose-code: #3f3f46;
@@ -66,6 +67,7 @@
     --tw-prose-counters: #e4e4e7;
     --tw-prose-bullets: #e4e4e7;
     --tw-prose-hr: color-mix(in oklch, #3f3f46 40%, transparent);
+    --tw-prose-quotes: #d4d4d8;
     --tw-prose-quote-borders: #71717a;
     --tw-prose-captions: #71717a;
     --tw-prose-code: #d4d4d8;
@@ -81,45 +83,199 @@
   line-height: 1.75rem;
 }
 
-.prose > * { margin-top: 2.5rem; margin-bottom: 2.5rem; }
-.prose p { margin-top: 1.75rem; margin-bottom: 1.75rem; }
-.prose h2, .prose h3 { color: var(--tw-prose-headings); font-weight: 600; }
-.prose h2 { font-size: 1.25rem; line-height: 1.75rem; margin-top: 5rem; margin-bottom: 1rem; }
-.prose h3 { font-size: 1rem; line-height: 1.75rem; margin-top: 4rem; margin-bottom: 1rem; }
-.prose :is(h2, h3) + * { margin-top: 0; }
-.prose img { border-radius: 1.5rem; }
-.prose a { color: var(--tw-prose-links); font-weight: 600; text-decoration: underline; text-decoration-color: var(--tw-prose-underline); transition-property: color, text-decoration-color; transition-duration: 150ms; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
-.prose a:hover { color: var(--tw-prose-links-hover); text-decoration-color: var(--tw-prose-underline-hover); }
-.prose strong { color: var(--tw-prose-bold); font-weight: 600; }
-.prose code { display: inline-block; color: var(--tw-prose-code); font-size: 0.875rem; font-weight: 600; background-color: var(--tw-prose-code-bg); border-radius: 0.5rem; padding-left: 0.25rem; padding-right: 0.25rem; }
-.prose a code { color: inherit; }
-.prose :is(h2, h3) code { font-weight: 700; }
-.prose blockquote { padding-left: 1.5rem; border-left-width: 2px; border-left-color: var(--tw-prose-quote-borders); font-style: italic; }
-.prose figcaption { color: var(--tw-prose-captions); font-size: 0.875rem; line-height: 1.5rem; margin-top: 0.75rem; }
-.prose figcaption > p { margin: 0; }
-.prose ul { list-style-type: disc; }
-.prose ol { list-style-type: decimal; }
-.prose ul, .prose ol { padding-left: 1.5rem; }
-.prose li { margin-top: 1.5rem; margin-bottom: 1.5rem; padding-left: 0.875rem; }
-.prose li::marker { font-size: 0.875rem; font-weight: 600; }
-.prose ol > li::marker { color: var(--tw-prose-counters); }
-.prose ul > li::marker { color: var(--tw-prose-bullets); }
-.prose li :is(ol, ul) { margin-top: 1rem; margin-bottom: 1rem; }
-.prose li :is(li, p) { margin-top: 0.75rem; margin-bottom: 0.75rem; }
-.prose pre { color: var(--tw-prose-pre-code); font-size: 0.875rem; font-weight: 500; background-color: var(--tw-prose-pre-bg); border-radius: 1.5rem; padding: 2rem; overflow-x: auto; border: 1px solid var(--tw-prose-pre-border); }
-.prose pre code { display: inline; color: inherit; font-size: inherit; font-weight: inherit; background-color: transparent; border-radius: 0; padding: 0; }
-.prose hr { margin-top: 5rem; margin-bottom: 5rem; border-top-width: 1px; border-color: var(--tw-prose-hr); }
-@media (min-width: 1024px) { .prose hr { margin-left: -3rem; margin-right: -3rem; } }
-.prose table { width: 100%; table-layout: auto; text-align: left; font-size: 0.875rem; }
-.prose thead { border-bottom-width: 1px; border-bottom-color: var(--tw-prose-th-borders); }
-.prose thead th { color: var(--tw-prose-headings); font-weight: 600; vertical-align: bottom; padding-bottom: 0.5rem; }
-.prose thead th:not(:first-child) { padding-left: 0.5rem; }
-.prose thead th:not(:last-child) { padding-right: 0.5rem; }
-.prose tbody tr { border-bottom-width: 1px; border-bottom-color: var(--tw-prose-td-borders); }
-.prose tbody tr:last-child { border-bottom-width: 0; }
-.prose tbody td { vertical-align: baseline; }
-.prose tfoot { border-top-width: 1px; border-top-color: var(--tw-prose-th-borders); }
-.prose tfoot td { vertical-align: top; }
-.prose :is(tbody, tfoot) td { padding-top: 0.5rem; padding-bottom: 0.5rem; }
-.prose :is(tbody, tfoot) td:not(:first-child) { padding-left: 0.5rem; }
-.prose :is(tbody, tfoot) td:not(:last-child) { padding-right: 0.5rem; }
+.prose > * {
+  margin-top: 2.5rem;
+  margin-bottom: 2.5rem;
+}
+.prose p {
+  margin-top: 1.75rem;
+  margin-bottom: 1.75rem;
+}
+.prose h2,
+.prose h3 {
+  color: var(--tw-prose-headings);
+  font-weight: 600;
+}
+.prose h2 {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+  margin-top: 5rem;
+  margin-bottom: 1rem;
+}
+.prose h3 {
+  font-size: 1rem;
+  line-height: 1.75rem;
+  margin-top: 4rem;
+  margin-bottom: 1rem;
+}
+.prose :is(h2, h3) + * {
+  margin-top: 0;
+}
+.prose img {
+  border-radius: 1.5rem;
+}
+.prose a {
+  color: var(--tw-prose-links);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--tw-prose-underline);
+  transition-property: color, text-decoration-color;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+.prose a:hover {
+  color: var(--tw-prose-links-hover);
+  text-decoration-color: var(--tw-prose-underline-hover);
+}
+.prose strong {
+  color: var(--tw-prose-bold);
+  font-weight: 600;
+}
+.prose code {
+  display: inline-block;
+  color: var(--tw-prose-code);
+  font-size: 0.875rem;
+  font-weight: 600;
+  background-color: var(--tw-prose-code-bg);
+  border-radius: 0.5rem;
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+}
+.prose code::before,
+.prose code::after {
+  content: none;
+}
+.prose a code {
+  color: inherit;
+}
+.prose :is(h2, h3) code {
+  font-weight: 700;
+}
+.prose blockquote {
+  padding-left: 1.5rem;
+  border-left-width: 2px;
+  border-left-color: var(--tw-prose-quote-borders);
+  font-style: italic;
+}
+.prose figcaption {
+  color: var(--tw-prose-captions);
+  font-size: 0.875rem;
+  line-height: 1.5rem;
+  margin-top: 0.75rem;
+}
+.prose figcaption > p {
+  margin: 0;
+}
+.prose ul {
+  list-style-type: disc;
+}
+.prose ol {
+  list-style-type: decimal;
+}
+.prose ul,
+.prose ol {
+  padding-left: 1.5rem;
+}
+.prose li {
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+  padding-left: 0.875rem;
+}
+.prose li::marker {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.prose ol > li::marker {
+  color: var(--tw-prose-counters);
+}
+.prose ul > li::marker {
+  color: var(--tw-prose-bullets);
+}
+.prose li :is(ol, ul) {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+.prose li :is(li, p) {
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.prose pre {
+  color: var(--tw-prose-pre-code);
+  font-size: 0.875rem;
+  font-weight: 500;
+  background-color: var(--tw-prose-pre-bg);
+  border-radius: 1.5rem;
+  padding: 2rem;
+  overflow-x: auto;
+  border: 1px solid var(--tw-prose-pre-border);
+}
+.prose pre code {
+  display: inline;
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  background-color: transparent;
+  border-radius: 0;
+  padding: 0;
+}
+.prose hr {
+  margin-top: 5rem;
+  margin-bottom: 5rem;
+  border-top-width: 1px;
+  border-color: var(--tw-prose-hr);
+}
+@media (min-width: 1024px) {
+  .prose hr {
+    margin-left: -3rem;
+    margin-right: -3rem;
+  }
+}
+.prose table {
+  width: 100%;
+  table-layout: auto;
+  text-align: left;
+  font-size: 0.875rem;
+}
+.prose thead {
+  border-bottom-width: 1px;
+  border-bottom-color: var(--tw-prose-th-borders);
+}
+.prose thead th {
+  color: var(--tw-prose-headings);
+  font-weight: 600;
+  vertical-align: bottom;
+  padding-bottom: 0.5rem;
+}
+.prose thead th:not(:first-child) {
+  padding-left: 0.5rem;
+}
+.prose thead th:not(:last-child) {
+  padding-right: 0.5rem;
+}
+.prose tbody tr {
+  border-bottom-width: 1px;
+  border-bottom-color: var(--tw-prose-td-borders);
+}
+.prose tbody tr:last-child {
+  border-bottom-width: 0;
+}
+.prose tbody td {
+  vertical-align: baseline;
+}
+.prose tfoot {
+  border-top-width: 1px;
+  border-top-color: var(--tw-prose-th-borders);
+}
+.prose tfoot td {
+  vertical-align: top;
+}
+.prose :is(tbody, tfoot) td {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+.prose :is(tbody, tfoot) td:not(:first-child) {
+  padding-left: 0.5rem;
+}
+.prose :is(tbody, tfoot) td:not(:last-child) {
+  padding-right: 0.5rem;
+}
