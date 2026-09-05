@@ -51,14 +51,14 @@ for (const filePath of files) {
   try {
     const raw = readFileSync(filePath, "utf-8")
     const { data } = matter(raw)
-    const { title, summary } = data
+    const { title, summary, redirect_link } = data
 
     if (!title) {
       console.warn(`Skipping ${filePath}: no title in frontmatter`)
       continue
     }
 
-    const postUrl = fileToUrl(filePath)
+    const postUrl = redirect_link ?? fileToUrl(filePath)
     const text = `Check out my new post: "${title}"`
 
     await agent.post({
