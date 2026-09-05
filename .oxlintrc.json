@@ -1,0 +1,13 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "env": {
+    "astro": true,
+    "browser": true,
+    "node": true,
+    "worker": true
+  },
+  "ignorePatterns": ["dist/**", "worker-configuration.d.ts"],
+  "options": {
+    "denyWarnings": true
+  }
+}

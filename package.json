@@ -10,7 +10,11 @@
     "dev": "mkdir -p dist && astro dev",
     "build": "wrangler types && astro build",
     "preview": "wrangler types && astro preview",
-    "create": "node ./create-post.mjs"
+    "create": "node ./scripts/create-post.mjs",
+    "format": "oxfmt && prettier --write \"**/*.astro\"",
+    "format:check": "oxfmt --check && prettier --check \"**/*.astro\"",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix"
   },
   "dependencies": {
     "@astro-community/astro-embed-bluesky": "^0.1.6",
@@ -34,11 +38,12 @@
   },
   "devDependencies": {
     "@inquirer/prompts": "^8.5.2",
-    "@trivago/prettier-plugin-sort-imports": "^6.0.2",
     "@types/node": "^25.9.5",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "gray-matter": "^4.0.3",
+    "oxfmt": "0.66.0",
+    "oxlint": "1.81.0",
     "prettier": "^3.9.6",
     "prettier-plugin-astro": "^0.14.1",
     "prettier-plugin-tailwindcss": "^0.7.4",

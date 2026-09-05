@@ -39,8 +39,7 @@ const posts = allPosts.sort(
               <Card class="md:col-span-3">
                 <CardTitle
                   href={
-                    post.data.redirect_link ??
-                    `/posts/${getPostSlug(post.id)}`
+                    post.data.redirect_link ?? `/posts/${getPostSlug(post.id)}`
                   }
                 >
                   {post.data.title}

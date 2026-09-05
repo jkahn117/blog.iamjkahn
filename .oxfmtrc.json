@@ -1,0 +1,25 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "bracketSpacing": true,
+  "endOfLine": "lf",
+  "ignorePatterns": [
+    ".agents/**",
+    "_planning_/**",
+    "src/content/blog/**",
+    "worker-configuration.d.ts"
+  ],
+  "insertFinalNewline": true,
+  "printWidth": 80,
+  "proseWrap": "preserve",
+  "semi": true,
+  "singleQuote": false,
+  "sortImports": true,
+  "sortPackageJson": false,
+  "sortTailwindcss": {
+    "functions": ["clsx"],
+    "stylesheet": "./src/css/tailwind.css"
+  },
+  "tabWidth": 2,
+  "trailingComma": "all",
+  "useTabs": false
+}

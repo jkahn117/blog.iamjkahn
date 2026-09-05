@@ -69,7 +69,7 @@ Resources:
       Tags:
         - Key: ProjectName
           Value: !Ref ProjectName
-  
+
   DomainCertificate:
     Type: AWS::CertificateManager::Certificate
     Properties:
@@ -78,7 +78,7 @@ Resources:
       DomainValidationOptions:
         - DomainName: !Ref SiteDomain
           HostedZoneId: !Ref HostedZoneId
-  
+
   RedirectFunction:
     Type: AWS::CloudFront::Function
     Properties:

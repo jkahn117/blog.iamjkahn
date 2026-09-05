@@ -178,7 +178,9 @@ const rotations = [
           posts.map((post) => (
             <Card as="article">
               <CardTitle
-                href={post.data.redirect_link ?? `/posts/${getPostSlug(post.id)}`}
+                href={
+                  post.data.redirect_link ?? `/posts/${getPostSlug(post.id)}`
+                }
               >
                 {post.data.title}
               </CardTitle>

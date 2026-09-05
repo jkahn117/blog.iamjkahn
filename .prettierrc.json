@@ -1,25 +1,15 @@
 {
-  "plugins": [
-    "@trivago/prettier-plugin-sort-imports",
-    "prettier-plugin-astro",
-    "prettier-plugin-tailwindcss"
-  ],
+  "plugins": ["prettier-plugin-astro", "prettier-plugin-tailwindcss"],
   "overrides": [
     {
       "files": "*.astro",
       "options": {
         "parser": "astro"
       }
-    },
-    {
-      "files": "*.jsonc",
-      "options": {
-        "parser": "jsonc",
-        "trailingComma": "none"
-      }
     }
   ],
   "bracketSpacing": true,
+  "printWidth": 80,
   "semi": true,
   "singleQuote": false,
   "tabWidth": 2,

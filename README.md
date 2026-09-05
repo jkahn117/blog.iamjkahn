@@ -4,12 +4,16 @@ Personal blog built with [Astro 5](https://astro.build), React, Tailwind CSS v4,
 
 ## Commands
 
-| Command | Description |
-|---|---|
-| `pnpm dev` | Start dev server |
-| `pnpm build` | Production build (also runs `wrangler types`) |
-| `pnpm preview` | Preview production build locally via Wrangler |
-| `pnpm create` | Interactive CLI to scaffold a new blog post |
+| Command             | Description                                           |
+| ------------------- | ----------------------------------------------------- |
+| `pnpm dev`          | Start dev server                                      |
+| `pnpm build`        | Production build (also runs `wrangler types`)         |
+| `pnpm preview`      | Preview production build locally via Wrangler         |
+| `pnpm create`       | Interactive CLI to scaffold a new blog post           |
+| `pnpm format`       | Format files with Oxfmt and Astro files with Prettier |
+| `pnpm format:check` | Check formatting without writing files                |
+| `pnpm lint`         | Lint code with Oxlint                                 |
+| `pnpm lint:fix`     | Apply safe Oxlint fixes                               |
 
 ## Project structure
 
@@ -39,13 +43,13 @@ Posts are Markdown files in `src/content/blog/` following the naming convention 
 
 Each post supports the following frontmatter:
 
-| Field | Required | Description |
-|---|---|---|
-| `title` | Yes | Post title |
-| `date` | Yes | Publish date (ISO 8601) |
-| `author` | No | Author name |
-| `summary` | No | Short description (used in RSS and post listings) |
-| `redirect_link` | No | External URL — makes the post a link-style post pointing offsite |
+| Field           | Required | Description                                                      |
+| --------------- | -------- | ---------------------------------------------------------------- |
+| `title`         | Yes      | Post title                                                       |
+| `date`          | Yes      | Publish date (ISO 8601)                                          |
+| `author`        | No       | Author name                                                      |
+| `summary`       | No       | Short description (used in RSS and post listings)                |
+| `redirect_link` | No       | External URL — makes the post a link-style post pointing offsite |
 
 Run `pnpm create` for an interactive prompt that scaffolds the frontmatter and file automatically.
 
@@ -64,7 +68,7 @@ The site deploys to Cloudflare Workers via GitHub Actions (`.github/workflows/de
 
 Environment variables required at build time:
 
-| Variable | Description |
-|---|---|
-| `PUBLIC_SITE_URL` | Canonical site URL |
+| Variable               | Description                     |
+| ---------------------- | ------------------------------- |
+| `PUBLIC_SITE_URL`      | Canonical site URL              |
 | `PUBLIC_ANALYTICS_URL` | Counterscale tracker script URL |

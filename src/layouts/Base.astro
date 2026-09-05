@@ -46,12 +46,16 @@ const ogImageUrl = new URL(image, siteUrl).href;
     <meta property="og:site_name" content="blog.iamjkahn.com" />
     <meta property="og:type" content={ogType} />
     <meta property="og:image" content={ogImageUrl} />
-    {ogType === "article" && publishedDate && (
-      <meta property="article:published_time" content={publishedDate} />
-    )}
-    {ogType === "article" && author && (
-      <meta property="article:author" content={author} />
-    )}
+    {
+      ogType === "article" && publishedDate && (
+        <meta property="article:published_time" content={publishedDate} />
+      )
+    }
+    {
+      ogType === "article" && author && (
+        <meta property="article:author" content={author} />
+      )
+    }
 
     <!-- Twitter / X -->
     <meta name="twitter:card" content="summary" />

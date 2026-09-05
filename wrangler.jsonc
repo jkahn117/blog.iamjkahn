@@ -4,21 +4,21 @@
   "compatibility_flags": ["nodejs_compat"],
   "assets": {
     "directory": "./dist",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
   },
   "observability": {
-    "enabled": true
+    "enabled": true,
   },
   "vars": {
     "SITE_URL": "https://blog.iamjkahn.com",
     "PUBLIC_BLUESKY_HANDLE": "iamjkahn.com",
-    "CDN": "cloudflare"
+    "CDN": "cloudflare",
   },
   "routes": [
     {
       "pattern": "blog.iamjkahn.com",
-      "custom_domain": true
-    }
+      "custom_domain": true,
+    },
   ],
-  "workers_dev": false
+  "workers_dev": false,
 }

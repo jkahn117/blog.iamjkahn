@@ -1,4 +1,3 @@
-import avatarImage from "@/images/avatar.jpg";
 import {
   Menu,
   MenuButton,
@@ -9,6 +8,8 @@ import {
 } from "@headlessui/react";
 import clsx from "clsx";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+
+import avatarImage from "@/images/avatar.jpg";
 
 function CloseIcon(props: React.SVGProps<SVGSVGElement>) {
   return (

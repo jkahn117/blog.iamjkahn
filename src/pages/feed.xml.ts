@@ -1,6 +1,7 @@
 import rss from "@astrojs/rss";
 import type { APIContext } from "astro";
 import { getCollection } from "astro:content";
+
 import { getPostSlug } from "@/lib/getPostSlug.ts";
 
 export const prerender = true;
