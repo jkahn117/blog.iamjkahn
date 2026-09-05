@@ -26,6 +26,13 @@ export default defineConfig({
   }),
   integrations: [react(), sitemap()],
   vite: {
+    optimizeDeps: {
+      include: [
+        "@astro-community/astro-embed-bluesky",
+        "@heroicons/react/24/outline",
+        "date-fns",
+      ],
+    },
     plugins: [tailwindcss(), reactDomEdgeAlias()],
   },
   redirects: {
