@@ -1,11 +1,35 @@
 {
   "version": 1,
   "skills": {
+    "building-emdash-site": {
+      "source": "emdash-cms/skills",
+      "sourceType": "github",
+      "skillPath": "skills/building-emdash-site/SKILL.md",
+      "computedHash": "9674c98251856c48d78c611f5e7884fee726e4da4df9a399e921ab7f5aa5e870"
+    },
+    "creating-plugins": {
+      "source": "emdash-cms/skills",
+      "sourceType": "github",
+      "skillPath": "skills/creating-plugins/SKILL.md",
+      "computedHash": "5b2d11e98ddd4d6742f93839e2324b98af4ea39f892a82c8ec9fd091604db9ae"
+    },
+    "emdash-cli": {
+      "source": "emdash-cms/skills",
+      "sourceType": "github",
+      "skillPath": "skills/emdash-cli/SKILL.md",
+      "computedHash": "18a17701b946afd65e778ea560feddfd18082da3f0e916dcc6ca8c155bc0d803"
+    },
     "faster-chrome-devtools-skill": {
       "source": "zeke/faster-chrome-devtools-skill",
       "sourceType": "github",
       "skillPath": "SKILL.md",
       "computedHash": "48265ba2a84eba38fce607217c03c9d6211b2864e42a0cbefba798fec0cdbc4e"
+    },
+    "upgrading-emdash": {
+      "source": "emdash-cms/skills",
+      "sourceType": "github",
+      "skillPath": "skills/upgrading-emdash/SKILL.md",
+      "computedHash": "49600bfd83609a8caa40501ed511dac5c0731138bcff51eb5257281dfe3ac8fb"
     }
   }
 }
