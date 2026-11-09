@@ -1,14 +1,14 @@
 ---
 export const prerender = true;
 
-import Base from "@/layouts/Base.astro";
-import SimpleLayout from "@/components/SimpleLayout.astro";
-import Section from "@/components/Section.astro";
 import Card from "@/components/Card/Card.astro";
-import CardTitle from "@/components/Card/CardTitle.astro";
-import CardEyebrow from "@/components/Card/CardEyebrow.astro";
-import CardDescription from "@/components/Card/CardDescription.astro";
 import CardCta from "@/components/Card/CardCta.astro";
+import CardDescription from "@/components/Card/CardDescription.astro";
+import CardEyebrow from "@/components/Card/CardEyebrow.astro";
+import CardTitle from "@/components/Card/CardTitle.astro";
+import Section from "@/components/Section.astro";
+import SimpleLayout from "@/components/SimpleLayout.astro";
+import Base from "@/layouts/Base.astro";
 
 const conferences = [
   {
@@ -121,52 +121,46 @@ const webinars = [
     <div class="space-y-20">
       <Section title="Conferences">
         <div class="space-y-16">
-          {
-            conferences.map((a) => (
-              <Card as="article">
-                <CardTitle as="h3" href={a.href}>
-                  {a.title}
-                </CardTitle>
-                <CardEyebrow decorate>{a.event}</CardEyebrow>
-                <CardDescription>{a.description}</CardDescription>
-                <CardCta>{a.cta}</CardCta>
-              </Card>
-            ))
-          }
+          {conferences.map((a) => (
+            <Card as="article">
+              <CardTitle as="h3" href={a.href}>
+                {a.title}
+              </CardTitle>
+              <CardEyebrow decorate>{a.event}</CardEyebrow>
+              <CardDescription>{a.description}</CardDescription>
+              <CardCta>{a.cta}</CardCta>
+            </Card>
+          ))}
         </div>
       </Section>
 
       <Section title="Meet Ups">
         <div class="space-y-16">
-          {
-            meetups.map((a) => (
-              <Card as="article">
-                <CardTitle as="h3" href={a.href}>
-                  {a.title}
-                </CardTitle>
-                <CardEyebrow decorate>{a.event}</CardEyebrow>
-                <CardDescription>{a.description}</CardDescription>
-                <CardCta>{a.cta}</CardCta>
-              </Card>
-            ))
-          }
+          {meetups.map((a) => (
+            <Card as="article">
+              <CardTitle as="h3" href={a.href}>
+                {a.title}
+              </CardTitle>
+              <CardEyebrow decorate>{a.event}</CardEyebrow>
+              <CardDescription>{a.description}</CardDescription>
+              <CardCta>{a.cta}</CardCta>
+            </Card>
+          ))}
         </div>
       </Section>
 
       <Section title="Webinars">
         <div class="space-y-16">
-          {
-            webinars.map((a) => (
-              <Card as="article">
-                <CardTitle as="h3" href={a.href}>
-                  {a.title}
-                </CardTitle>
-                <CardEyebrow decorate>{a.event}</CardEyebrow>
-                <CardDescription>{a.description}</CardDescription>
-                <CardCta>{a.cta}</CardCta>
-              </Card>
-            ))
-          }
+          {webinars.map((a) => (
+            <Card as="article">
+              <CardTitle as="h3" href={a.href}>
+                {a.title}
+              </CardTitle>
+              <CardEyebrow decorate>{a.event}</CardEyebrow>
+              <CardDescription>{a.description}</CardDescription>
+              <CardCta>{a.cta}</CardCta>
+            </Card>
+          ))}
         </div>
       </Section>
     </div>

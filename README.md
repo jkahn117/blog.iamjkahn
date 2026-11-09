@@ -4,16 +4,16 @@ Personal blog built with [Astro 5](https://astro.build), React, Tailwind CSS v4,
 
 ## Commands
 
-| Command             | Description                                           |
-| ------------------- | ----------------------------------------------------- |
-| `pnpm dev`          | Start dev server                                      |
-| `pnpm build`        | Production build (also runs `wrangler types`)         |
-| `pnpm preview`      | Preview production build locally via Wrangler         |
-| `pnpm create`       | Interactive CLI to scaffold a new blog post           |
-| `pnpm format`       | Format files with Oxfmt and Astro files with Prettier |
-| `pnpm format:check` | Check formatting without writing files                |
-| `pnpm lint`         | Lint code with Oxlint                                 |
-| `pnpm lint:fix`     | Apply safe Oxlint fixes                               |
+| Command             | Description                                        |
+| ------------------- | -------------------------------------------------- |
+| `pnpm dev`          | Start dev server                                   |
+| `pnpm build`        | Production build (also runs `wrangler types`)      |
+| `pnpm preview`      | Preview production build locally via Wrangler      |
+| `pnpm create`       | Interactive CLI to scaffold a new blog post        |
+| `pnpm format`       | Format files with Oxfmt, including Astro templates |
+| `pnpm format:check` | Check formatting without writing files             |
+| `pnpm lint`         | Lint code with Oxlint                              |
+| `pnpm lint:fix`     | Apply safe Oxlint fixes                            |
 
 ## Project structure
 

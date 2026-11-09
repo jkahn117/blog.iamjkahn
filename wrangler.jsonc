@@ -1,7 +1,8 @@
 {
+  // Active configuration for the stable Astro Cloudflare adapter.
+  // Keep bindings in sync with cloudflare.config.ts until switching adapters.
   "name": "iamjkahn-blog",
-  "compatibility_date": "2025-01-01",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_date": "2026-11-01",
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
@@ -14,6 +15,21 @@
     "PUBLIC_BLUESKY_HANDLE": "iamjkahn.com",
     "CDN": "cloudflare",
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "iamjkahn-cms",
+      "database_id": "1f4a3f2d-602d-4816-bc60-add015ddc7f4",
+      "remote": false,
+    },
+  ],
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "iamjkahn-media",
+      "remote": false,
+    },
+  ],
   "routes": [
     {
       "pattern": "blog.iamjkahn.com",

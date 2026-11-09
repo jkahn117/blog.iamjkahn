@@ -1,8 +1,10 @@
 import cloudflare from "@astrojs/cloudflare";
 import react from "@astrojs/react";
 import sitemap from "@astrojs/sitemap";
+import { d1, r2 } from "@emdash-cms/cloudflare";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
+import emdash from "emdash/astro";
 
 function reactDomEdgeAlias() {
   return {
@@ -22,9 +24,17 @@ export default defineConfig({
   trailingSlash: "never",
   prefetch: true,
   adapter: cloudflare({
+    configPath: "./wrangler.jsonc",
     imageService: "compile",
   }),
-  integrations: [react(), sitemap()],
+  integrations: [
+    react(),
+    sitemap(),
+    emdash({
+      database: d1({ binding: "DB" }),
+      storage: r2({ binding: "MEDIA" }),
+    }),
+  ],
   vite: {
     optimizeDeps: {
       include: [

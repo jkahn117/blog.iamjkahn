@@ -1,7 +1,8 @@
 ---
 import { CacheHeaders, ONE_WEEK } from "cdn-cache-control";
-import { withCache } from "../lib/cache";
 import { XMLParser } from "fast-xml-parser";
+
+import { withCache } from "../lib/cache";
 
 export const prerender = false;
 
@@ -73,29 +74,27 @@ if (book) {
 }
 ---
 
-{
-  book && (
-    <a
-      href={book.goodreadsLink}
-      target="_blank"
-      rel="noopener noreferrer"
-      class="group flex items-center gap-4 no-underline"
-    >
-      {book.image && (
-        <img
-          src={book.image}
-          alt={`Cover of ${book.title}`}
-          class="h-16 w-auto shrink-0 rounded-sm object-cover"
-        />
-      )}
-      <div class="min-w-0">
-        <p class="text-md truncate font-semibold text-zinc-800 transition-colors group-hover:text-teal-500 dark:text-zinc-100 dark:group-hover:text-teal-400">
-          {book.title}
-        </p>
-        <p class="mt-0.5 truncate text-xs text-zinc-500 dark:text-zinc-400">
-          {book.author && `by ${book.author}`}
-        </p>
-      </div>
-    </a>
-  )
-}
+{book && (
+  <a
+    href={book.goodreadsLink}
+    target="_blank"
+    rel="noopener noreferrer"
+    class="group flex items-center gap-4 no-underline"
+  >
+    {book.image && (
+      <img
+        src={book.image}
+        alt={`Cover of ${book.title}`}
+        class="h-16 w-auto shrink-0 rounded-sm object-cover"
+      />
+    )}
+    <div class="min-w-0">
+      <p class="text-md truncate font-semibold text-zinc-800 transition-colors group-hover:text-teal-500 dark:text-zinc-100 dark:group-hover:text-teal-400">
+        {book.title}
+      </p>
+      <p class="mt-0.5 truncate text-xs text-zinc-500 dark:text-zinc-400">
+        {book.author && `by ${book.author}`}
+      </p>
+    </div>
+  </a>
+)}

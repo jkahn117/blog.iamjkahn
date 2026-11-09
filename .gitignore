@@ -11,6 +11,9 @@
 /dist/
 /.astro/
 
+# generated EmDash migration manifest
+/.emdash/migrations.json
+
 # production
 /build
 

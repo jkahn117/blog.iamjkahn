@@ -1,11 +1,14 @@
 {
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "astro": true,
   "bracketSpacing": true,
   "endOfLine": "lf",
   "ignorePatterns": [
     ".agents/**",
     "_planning_/**",
     "src/content/blog/**",
+    ".emdash/migrations.json",
+    "emdash-env.d.ts",
     "worker-configuration.d.ts"
   ],
   "insertFinalNewline": true,
