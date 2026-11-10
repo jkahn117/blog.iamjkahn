@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-// Run against the local site after importing the five documented samples:
-// EMDASH_RENDER_TEST_URL=http://localhost:4321 pnpm test:migration
+// Run against the local site containing the historical archive:
+// EMDASH_RENDER_TEST_URL=http://localhost:4321 pnpm test
 // This suite only reads rendered pages and assets; it never writes CMS data.
 const target = process.env.EMDASH_RENDER_TEST_URL;
 const samples = [
@@ -45,7 +45,7 @@ const samples = [
 ];
 
 await test(
-  "imported samples render through the existing article route",
+  "historical articles render through the existing article route",
   {
     skip: !target,
   },
@@ -99,7 +99,7 @@ await test(
       "unknown and wrong historical paths have no article page",
       async () => {
         for (const route of [
-          "2026/03/nonexistent-migration-sample",
+          "2026/03/nonexistent-article",
           "2007/11/finallya-working-lcds-development-environment",
           "2026/04/auto-scaling-cold-starts-and-cost-efficiency",
         ]) {

@@ -10,9 +10,7 @@
     "dev": "mkdir -p dist && astro dev",
     "build": "wrangler types && astro build",
     "preview": "wrangler types && astro preview",
-    "create": "node ./scripts/create-post.mjs",
-    "migrate:posts": "node ./scripts/emdash-migration/cli.ts",
-    "test:migration": "tsc -p ./scripts/emdash-migration/tsconfig.json && node --test ./scripts/emdash-migration/*.test.ts",
+    "test": "tsc -p ./tests/tsconfig.json && node --test ./tests/*.test.ts",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
     "lint": "oxlint",
@@ -42,24 +40,14 @@
   },
   "devDependencies": {
     "@astrojs/compiler-rs": "0.5.2",
-    "@inquirer/prompts": "^8.5.2",
-    "@types/mdast": "^4.0.4",
     "@types/node": "^25.9.5",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "cf": "1.0.0-beta.28",
-    "gray-matter": "^4.0.3",
-    "hast-util-to-html": "^9.0.6",
-    "mdast-util-to-hast": "^13.2.1",
     "oxfmt": "0.77.0",
     "oxlint": "1.81.0",
-    "remark-gfm": "^4.0.1",
-    "remark-parse": "^11.0.0",
     "sharp": "^0.35.3",
-    "slug": "^11.0.1",
     "typescript": "5.9.3",
-    "unified": "^11.0.5",
-    "wrangler": "^4.158.0",
-    "zod": "^4.6.7"
+    "wrangler": "^4.158.0"
   }
 }

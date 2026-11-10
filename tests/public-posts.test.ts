@@ -3,9 +3,9 @@ import test from "node:test";
 
 import { XMLParser } from "fast-xml-parser";
 
-import type { Post } from "../../emdash-env.ts";
-import { getPostDate, getPostPath, toPublicPost } from "../../src/lib/posts.ts";
-import { buildMigrationPlan } from "./inventory.ts";
+import type { Post } from "../emdash-env.ts";
+import { getPostDate, getPostPath, toPublicPost } from "../src/lib/posts.ts";
+import archive from "./fixtures/archive-posts.json" with { type: "json" };
 
 function postFixture(overrides: Partial<Post> = {}): Post {
   return {
@@ -106,10 +106,13 @@ test("public conversion excludes drafts and keeps external posts pathless", () =
   );
 });
 
+// Read-only checks against an unchanged local archive import:
+// EMDASH_PUBLIC_TEST_URL=http://localhost:4321 pnpm test
+// The snapshot keeps archive contracts independent of retired import tooling.
 const target = process.env.EMDASH_PUBLIC_TEST_URL;
 
 test(
-  "public post listings, feeds, sitemap, and anonymous fallbacks match the source inventory",
+  "public post listings, feeds, sitemap, and anonymous fallbacks match the archive fixture",
   { skip: !target },
   async (t) => {
     const origin = new URL(target!);
@@ -121,19 +124,16 @@ test(
     assert.equal(origin.search, "");
     assert.equal(origin.hash, "");
 
-    const inventory = buildMigrationPlan();
-    assert.equal(inventory.summary.published, 112);
-    assert.equal(inventory.summary.drafts, 1);
-    const published = inventory.posts.filter(
-      (entry) => entry.payload.status === "published",
-    );
+    const published = archive.filter((entry) => entry.status === "published");
+    assert.equal(published.length, 112);
+    assert.equal(archive.filter((entry) => entry.status === "draft").length, 1);
     const publicPosts = published
       .map((entry) => ({
         title: entry.title,
-        date: new Date(String(entry.payload.data.legacy_published_at)),
-        href: entry.externalUrl ?? `/posts/${entry.route}`,
-        path: entry.externalUrl ? null : `/posts/${entry.route}`,
-        slug: entry.payload.slug,
+        date: new Date(entry.date),
+        href: entry.href,
+        path: entry.path,
+        slug: entry.slug,
       }))
       .sort(
         (left, right) =>
@@ -142,9 +142,7 @@ test(
       );
     const localPosts = publicPosts.filter((entry) => entry.path);
     const externalPosts = publicPosts.filter((entry) => !entry.path);
-    const draft = inventory.posts.find(
-      (entry) => entry.payload.status === "draft",
-    )!;
+    const draft = archive.find((entry) => entry.status === "draft")!;
 
     const get = async (path: string) => {
       const response = await fetch(new URL(path, origin), {
@@ -256,7 +254,7 @@ test(
         );
         assert.equal(
           urls.some((entry) =>
-            new URL(entry.loc).pathname.includes(draft.payload.slug),
+            new URL(entry.loc).pathname.includes(draft.slug),
           ),
           false,
         );
@@ -283,10 +281,7 @@ test(
         );
         assert.equal(publishedFallback.body, "");
 
-        for (const path of [
-          `/posts/${draft.payload.slug}`,
-          `/posts/${draft.route}`,
-        ]) {
+        for (const path of [`/posts/${draft.slug}`, draft.path!]) {
           for (const query of ["", "?_preview=invalid-token"]) {
             const rejected = await get(path + query);
             assert.equal(rejected.response.status, 404);

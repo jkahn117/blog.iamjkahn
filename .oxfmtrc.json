@@ -6,7 +6,7 @@
   "ignorePatterns": [
     ".agents/**",
     "_planning_/**",
-    "src/content/blog/**",
+    "_archive/**",
     ".emdash/migrations.json",
     "emdash-env.d.ts",
     "worker-configuration.d.ts"
