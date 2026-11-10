@@ -3,8 +3,9 @@
 ## Project constraints
 
 - Keep ordinary pages prerendered. Use request-time rendering only when request bindings or behavior require it. `src/components/Bluesky.astro` remains request-time and is rendered with `server:defer`.
-- Blog filenames use `YYYY-MM-DD-slug.md`. Build post URLs with `getPostSlug()` so the day is omitted from the route.
-- Exclude posts with `publish: false` from public listings and routes. Posts with `redirect_link` link externally and have no local post page.
+- Read posts from EmDash. `_archive/content/` is historical source, not a runtime content collection.
+- Build post URLs with `getPostPath()` in `src/lib/posts.ts`. Preserve imported `legacy_route` values independently of editable CMS slugs.
+- Public listings and anonymous article routes expose only posts with `status: "published"`. Preserve native signed draft previews. Posts with `redirect_link` link externally and have no local article page.
 
 ## Formatting
 
