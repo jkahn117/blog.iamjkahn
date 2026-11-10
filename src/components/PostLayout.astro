@@ -1,15 +1,14 @@
 ---
-import type { CollectionEntry } from "astro:content";
-
 import Container from "@/components/Container.astro";
 import Prose from "@/components/Prose.astro";
 import { formatDate } from "@/lib/formatDate.ts";
 
 interface Props {
-  post: CollectionEntry<"blog">;
+  title: string;
+  date: Date;
 }
 
-const { post } = Astro.props;
+const { title, date } = Astro.props;
 ---
 
 <Container class="mt-16 lg:mt-32">
@@ -53,17 +52,17 @@ const { post } = Astro.props;
         })();
       </script>
 
-      <article>
+      <article class="post-content">
         <header class="flex flex-col">
           <h1 class="mt-6 text-4xl font-bold tracking-tight text-zinc-800 sm:text-5xl dark:text-zinc-100">
-            {post.data.title}
+            {title}
           </h1>
           <time
-            datetime={post.data.date.toISOString()}
+            datetime={date.toISOString()}
             class="order-first flex items-center text-base text-zinc-400 dark:text-zinc-500"
           >
             <span class="h-4 w-0.5 rounded-full bg-zinc-200 dark:bg-zinc-500"></span>
-            <span class="ml-3">{formatDate(post.data.date)}</span>
+            <span class="ml-3">{formatDate(date)}</span>
           </time>
         </header>
         <Prose class="mt-8">
@@ -73,3 +72,31 @@ const { post } = Astro.props;
     </div>
   </div>
 </Container>
+
+<style>
+  .post-content :global([id^="fn-"]) {
+    display: grid;
+    grid-template-columns: 1.5em minmax(0, 1fr);
+    column-gap: 0.5em;
+    font-size: 0.875em;
+    line-height: 1.6;
+    scroll-margin-top: 2rem;
+  }
+
+  .post-content :global([id^="fn-"] > sup:first-child) {
+    grid-column: 1;
+    grid-row: 1;
+    position: static;
+    font-size: inherit;
+    line-height: inherit;
+  }
+
+  .post-content :global([id^="fn-"] > :not(sup)) {
+    grid-column: 2;
+    margin-block: 0 0.75em;
+  }
+
+  .post-content :global([id^="fn-"] > :last-child) {
+    margin-bottom: 0;
+  }
+</style>

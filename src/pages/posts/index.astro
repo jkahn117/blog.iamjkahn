@@ -1,7 +1,5 @@
 ---
-export const prerender = true;
-
-import { getCollection } from "astro:content";
+export const prerender = false;
 
 import Card from "@/components/Card/Card.astro";
 import CardCta from "@/components/Card/CardCta.astro";
@@ -11,15 +9,10 @@ import CardTitle from "@/components/Card/CardTitle.astro";
 import SimpleLayout from "@/components/SimpleLayout.astro";
 import Base from "@/layouts/Base.astro";
 import { formatDate } from "@/lib/formatDate.ts";
-import { getPostSlug } from "@/lib/getPostSlug.ts";
+import { getPublicPosts } from "@/lib/posts";
 
-const allPosts = await getCollection(
-  "blog",
-  ({ data }) => data.publish !== false,
-);
-const posts = allPosts.sort(
-  (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
-);
+const { posts, cacheHint } = await getPublicPosts();
+if (Astro.cache?.enabled) Astro.cache.set(cacheHint);
 ---
 
 <Base
@@ -35,30 +28,24 @@ const posts = allPosts.sort(
         {posts.map((post) => (
           <article class="md:grid md:grid-cols-4 md:items-baseline">
             <Card class="md:col-span-3">
-              <CardTitle
-                href={
-                  post.data.redirect_link ?? `/posts/${getPostSlug(post.id)}`
-                }
-              >
-                {post.data.title}
-              </CardTitle>
+              <CardTitle href={post.href}>{post.title}</CardTitle>
               <CardEyebrow
                 as="time"
-                datetime={post.data.date.toISOString()}
+                datetime={post.date.toISOString()}
                 class="md:hidden"
                 decorate
               >
-                {formatDate(post.data.date)}
+                {formatDate(post.date)}
               </CardEyebrow>
-              <CardDescription>{post.data.summary}</CardDescription>
+              <CardDescription>{post.excerpt}</CardDescription>
               <CardCta>Read post</CardCta>
             </Card>
             <CardEyebrow
               as="time"
-              datetime={post.data.date.toISOString()}
+              datetime={post.date.toISOString()}
               class="mt-1 hidden md:block"
             >
-              {formatDate(post.data.date)}
+              {formatDate(post.date)}
             </CardEyebrow>
           </article>
         ))}

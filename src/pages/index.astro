@@ -1,9 +1,8 @@
 ---
-export const prerender = true;
+export const prerender = false;
 
 import { BookOpenIcon, BriefcaseIcon } from "@heroicons/react/24/outline";
 import { Image } from "astro:assets";
-import { getCollection } from "astro:content";
 
 import Bluesky from "@/components/Bluesky.astro";
 import Card from "@/components/Card/Card.astro";
@@ -31,15 +30,11 @@ import image4 from "@/images/photos/image-4.jpg";
 import image5 from "@/images/photos/image-5.jpg";
 import Base from "@/layouts/Base.astro";
 import { formatDate } from "@/lib/formatDate.ts";
-import { getPostSlug } from "@/lib/getPostSlug.ts";
+import { getPublicPosts } from "@/lib/posts";
 
-const allPosts = await getCollection(
-  "blog",
-  ({ data }) => data.publish !== false,
-);
-const posts = allPosts
-  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
-  .slice(0, 4);
+const { posts: allPosts, cacheHint } = await getPublicPosts();
+if (Astro.cache?.enabled) Astro.cache.set(cacheHint);
+const posts = allPosts.slice(0, 4);
 
 const resume = [
   {
@@ -162,19 +157,11 @@ const rotations = [
       <div class="flex flex-col gap-16">
         {posts.map((post) => (
           <Card as="article">
-            <CardTitle
-              href={post.data.redirect_link ?? `/posts/${getPostSlug(post.id)}`}
-            >
-              {post.data.title}
-            </CardTitle>
-            <CardEyebrow
-              as="time"
-              datetime={post.data.date.toISOString()}
-              decorate
-            >
-              {formatDate(post.data.date)}
+            <CardTitle href={post.href}>{post.title}</CardTitle>
+            <CardEyebrow as="time" datetime={post.date.toISOString()} decorate>
+              {formatDate(post.date)}
             </CardEyebrow>
-            <CardDescription>{post.data.summary}</CardDescription>
+            <CardDescription>{post.excerpt}</CardDescription>
             <CardCta>Read post</CardCta>
           </Card>
         ))}

@@ -29,8 +29,11 @@ export default defineConfig({
   }),
   integrations: [
     react(),
-    sitemap(),
+    sitemap({
+      customSitemaps: ["https://blog.iamjkahn.com/sitemap-posts.xml"],
+    }),
     emdash({
+      siteUrl: process.env.EMDASH_SITE_URL,
       database: d1({ binding: "DB" }),
       storage: r2({ binding: "MEDIA" }),
     }),

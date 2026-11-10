@@ -1,38 +1,62 @@
 ---
-export const prerender = true;
+export const prerender = false;
 
-import { getCollection, render } from "astro:content";
+import { getEmDashCollection, getEmDashEntry, getRequestContext } from "emdash";
+import { PortableText } from "emdash/ui";
 
 import PostLayout from "@/components/PostLayout.astro";
 import Base from "@/layouts/Base.astro";
-import { getPostSlug } from "@/lib/getPostSlug.ts";
+import { getPostDate, getPostPath } from "@/lib/posts";
 
-export async function getStaticPaths() {
-  const posts = await getCollection(
-    "blog",
-    ({ data }) => data.publish !== false && !data.redirect_link,
-  );
-  return posts.map((post) => {
-    const [year, month, slug] = getPostSlug(post.id).split("/");
-    return {
-      params: { year, month, slug },
-      props: { post },
-    };
-  });
+const { year, month, slug } = Astro.params;
+if (!year || !month || !slug) return new Response("Not found", { status: 404 });
+
+// Historical URLs belong to the imported entry, not its editable current slug.
+const { entries, error: routeError } = await getEmDashCollection("posts", {
+  status: "published",
+  where: { legacy_route: `${year}/${month}/${slug}` },
+  limit: 1,
+});
+if (routeError) throw routeError;
+const preview = getRequestContext()?.preview;
+const id =
+  preview?.collection === "posts" ? preview.id : (entries[0]?.data.id ?? slug);
+
+const {
+  entry: post,
+  error,
+  isPreview,
+  cacheHint,
+} = await getEmDashEntry("posts", id);
+if (error && error.name !== "LiveEntryNotFoundError") throw error;
+if (
+  !post ||
+  (!isPreview && post.data.status !== "published") ||
+  post.data.redirect_link ||
+  getPostPath(post.data) !== `/posts/${year}/${month}/${slug}`
+) {
+  // The site's /404 page is prerendered, so an on-demand route cannot rewrite to it.
+  return new Response("Not found", { status: 404 });
 }
 
-const { post } = Astro.props;
-const { Content } = await render(post);
+if (isPreview) {
+  Astro.response.headers.set("Cache-Control", "private, no-store");
+  Astro.response.headers.set("X-Robots-Tag", "noindex, nofollow");
+} else if (Astro.cache?.enabled) {
+  Astro.cache.set(cacheHint);
+}
+
+const date = getPostDate(post.data);
 ---
 
 <Base
   title={post.data.title}
-  description={post.data.summary}
+  description={post.data.excerpt}
   ogType="article"
-  publishedDate={post.data.date.toISOString()}
-  author={post.data.author}
+  publishedDate={date.toISOString()}
+  author={post.data.byline?.displayName}
 >
-  <PostLayout post={post}>
-    <Content />
+  <PostLayout title={post.data.title} date={date}>
+    <PortableText value={post.data.content ?? []} />
   </PostLayout>
 </Base>
