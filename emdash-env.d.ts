@@ -27,6 +27,12 @@ export interface Post {
   featured_image?: { id: string; src?: string; alt?: string; caption?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; caption?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } };
   content?: PortableTextBlock[];
   excerpt?: string;
+  legacy_route?: string;
+  redirect_link?: string;
+  legacy_published_at?: string;
+  migration_source_path?: string;
+  migration_source_hash?: string;
+  migration_payload_hash?: string;
   createdAt: Date;
   updatedAt: Date;
   publishedAt: Date | null;

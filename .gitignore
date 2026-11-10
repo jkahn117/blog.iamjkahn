@@ -14,6 +14,12 @@
 # generated EmDash migration manifest
 /.emdash/migrations.json
 
+# local content migration plans and receipts
+/.migration/
+
+# local tickets and working notes
+.scratch/
+
 # production
 /build
 
