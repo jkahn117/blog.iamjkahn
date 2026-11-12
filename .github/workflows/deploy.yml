@@ -3,10 +3,11 @@ name: Deploy to Cloudflare Workers
 on:
   push:
     branches: ["main"]
+  pull_request:
   workflow_dispatch:
 
 jobs:
-  deploy:
+  checks:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -27,34 +28,34 @@ jobs:
           cache: "pnpm"
 
       - name: Install
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
+
+      - name: Test
+        run: pnpm test
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Check formatting
+        run: pnpm format:check
 
       - name: Build
-        run: pnpm run build
+        run: pnpm build
         env:
           PUBLIC_SITE_URL: https://blog.iamjkahn.com
           PUBLIC_ANALYTICS_URL: https://cs.iamjkahn.com/tracker.js
           PUBLIC_BLUESKY_HANDLE: iamjkahn.com
 
-      - name: Deploy to Cloudflare Workers
-        uses: cloudflare/wrangler-action@v4.0.0
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: "4.65.0"
-
-  announce:
-    needs: deploy
+  deploy:
+    needs: checks
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    # Only runs on push events — skip workflow_dispatch (no before SHA available)
-    if: github.event_name == 'push'
+    timeout-minutes: 30
     permissions:
       contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v7.0.1
-        with:
-          fetch-depth: 0
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6.0.9
@@ -68,27 +69,17 @@ jobs:
           cache: "pnpm"
 
       - name: Install
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
-      - name: Detect new posts
-        id: diff
+      - name: Build
+        run: pnpm build
         env:
-          BEFORE_SHA: ${{ github.event.before }}
-          AFTER_SHA: ${{ github.sha }}
-        run: |
-          # Guard against first-ever push to the branch (before SHA is all zeros)
-          if [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ]; then
-            echo "files=" >> $GITHUB_OUTPUT
-          else
-            NEW=$(git diff --name-only --diff-filter=A "$BEFORE_SHA" "$AFTER_SHA" \
-              -- 'src/content/blog/*.md' | xargs)
-            echo "files=$NEW" >> $GITHUB_OUTPUT
-          fi
+          PUBLIC_SITE_URL: https://blog.iamjkahn.com
+          PUBLIC_ANALYTICS_URL: https://cs.iamjkahn.com/tracker.js
+          PUBLIC_BLUESKY_HANDLE: iamjkahn.com
 
-      - name: Announce on Bluesky
-        if: steps.diff.outputs.files != ''
-        env:
-          NEW_POSTS: ${{ steps.diff.outputs.files }}
-          BLUESKY_HANDLE: ${{ secrets.BLUESKY_HANDLE }}
-          BLUESKY_APP_PASSWORD: ${{ secrets.BLUESKY_APP_PASSWORD }}
-        run: node scripts/announce-post.mjs $NEW_POSTS
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v4.0.0
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
