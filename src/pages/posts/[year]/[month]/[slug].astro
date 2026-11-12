@@ -4,12 +4,12 @@ export const prerender = false;
 import { getEmDashCollection, getEmDashEntry, getRequestContext } from "emdash";
 import { PortableText } from "emdash/ui";
 
+import NotFound from "@/components/NotFound.astro";
 import PostLayout from "@/components/PostLayout.astro";
 import Base from "@/layouts/Base.astro";
 import { getPostDate, getPostPath } from "@/lib/posts";
 
 const { year, month, slug } = Astro.params;
-if (!year || !month || !slug) return new Response("Not found", { status: 404 });
 
 // Historical URLs belong to the imported entry, not its editable current slug.
 const { entries, error: routeError } = await getEmDashCollection("posts", {
@@ -20,7 +20,9 @@ const { entries, error: routeError } = await getEmDashCollection("posts", {
 if (routeError) throw routeError;
 const preview = getRequestContext()?.preview;
 const id =
-  preview?.collection === "posts" ? preview.id : (entries[0]?.data.id ?? slug);
+  preview?.collection === "posts"
+    ? preview.id
+    : (entries[0]?.data.id ?? slug ?? "");
 
 const {
   entry: post,
@@ -29,34 +31,39 @@ const {
   cacheHint,
 } = await getEmDashEntry("posts", id);
 if (error && error.name !== "LiveEntryNotFoundError") throw error;
-if (
+const notFound =
+  !year ||
+  !month ||
+  !slug ||
   !post ||
   (!isPreview && post.data.status !== "published") ||
   post.data.redirect_link ||
-  getPostPath(post.data) !== `/posts/${year}/${month}/${slug}`
-) {
-  // The site's /404 page is prerendered, so an on-demand route cannot rewrite to it.
-  return new Response("Not found", { status: 404 });
-}
+  getPostPath(post.data) !== `/posts/${year}/${month}/${slug}`;
 
-if (isPreview) {
+if (notFound) {
+  Astro.response.status = 404;
+} else if (isPreview) {
   Astro.response.headers.set("Cache-Control", "private, no-store");
   Astro.response.headers.set("X-Robots-Tag", "noindex, nofollow");
 } else if (Astro.cache?.enabled) {
   Astro.cache.set(cacheHint);
 }
 
-const date = getPostDate(post.data);
+const date = !notFound && post ? getPostDate(post.data) : null;
 ---
 
-<Base
-  title={post.data.title}
-  description={post.data.excerpt}
-  ogType="article"
-  publishedDate={date.toISOString()}
-  author={post.data.byline?.displayName}
->
-  <PostLayout title={post.data.title} date={date}>
-    <PortableText value={post.data.content ?? []} />
-  </PostLayout>
-</Base>
+{post && date ? (
+  <Base
+    title={post.data.title}
+    description={post.data.excerpt}
+    ogType="article"
+    publishedDate={date.toISOString()}
+    author={post.data.byline?.displayName}
+  >
+    <PostLayout title={post.data.title} date={date}>
+      <PortableText value={post.data.content ?? []} />
+    </PostLayout>
+  </Base>
+) : (
+  <NotFound />
+)}

@@ -1,0 +1,39 @@
+---
+export const prerender = false;
+
+import { getEmDashEntry } from "emdash";
+
+import NotFound from "@/components/NotFound.astro";
+import { getPostPath } from "@/lib/posts";
+
+// EmDash admin previews default to /posts/{id}; keep signing and draft access in EmDash.
+const headers = {
+  "Cache-Control": "private, no-store",
+  "X-Robots-Tag": "noindex, nofollow",
+  "Referrer-Policy": "no-referrer",
+};
+for (const [name, value] of Object.entries(headers)) {
+  Astro.response.headers.set(name, value);
+}
+const { entry, error, isPreview } = await getEmDashEntry(
+  "posts",
+  Astro.params.id ?? "",
+);
+if (error && error.name !== "LiveEntryNotFoundError") throw error;
+const path = entry && !entry.data.redirect_link && getPostPath(entry.data);
+if (entry && path && (isPreview || entry.data.status === "published")) {
+  const destination = new URL(path, Astro.url);
+  const token = Astro.url.searchParams.get("_preview");
+  if (isPreview && token) destination.searchParams.set("_preview", token);
+  return new Response(null, {
+    status: 302,
+    headers: {
+      ...headers,
+      Location: destination.pathname + destination.search,
+    },
+  });
+}
+Astro.response.status = 404;
+---
+
+<NotFound />
