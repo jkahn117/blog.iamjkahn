@@ -1,5 +1,15 @@
 # AGENTS.md - blog.iamjkahn.com
 
+## Site and scope
+
+This is Josh Kahn's personal blog, built with Astro and EmDash on Cloudflare Workers. Optimize for secure publishing, preserved content and URLs, and Josh's visual approval. Prefer the smallest working change and native CMS features.
+
+## Verification
+
+Use existing checks and focused smoke tests. Add unit tests for security-sensitive logic, data integrity, or meaningful custom behavior; use direct CMS and browser checks for page layout and routine CMS integration. Avoid new test infrastructure or documentation unless the task needs it.
+
+Treat security exposure and irreversible data loss as launch blockers. Report other defects separately, and let Josh decide whether to defer them. Visual changes need Josh's approval.
+
 ## Project constraints
 
 - Keep ordinary pages prerendered. Use request-time rendering only when request bindings or behavior require it. `src/components/Bluesky.astro` remains request-time and is rendered with `server:defer`.

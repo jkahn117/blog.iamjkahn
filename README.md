@@ -1,74 +1,45 @@
-# https://blog.iamjkahn.com
+# blog.iamjkahn.com
 
-Personal blog built with [Astro 5](https://astro.build), React, Tailwind CSS v4, and deployed to Cloudflare Workers.
+Josh Kahn's personal blog, built with Astro, React, Tailwind CSS, and EmDash on Cloudflare Workers. D1 stores CMS content; R2 stores uploaded media.
 
-## Commands
+## Development
 
-| Command             | Description                                        |
-| ------------------- | -------------------------------------------------- |
-| `pnpm dev`          | Start dev server                                   |
-| `pnpm build`        | Production build (also runs `wrangler types`)      |
-| `pnpm preview`      | Preview production build locally via Wrangler      |
-| `pnpm create`       | Interactive CLI to scaffold a new blog post        |
-| `pnpm format`       | Format files with Oxfmt, including Astro templates |
-| `pnpm format:check` | Check formatting without writing files             |
-| `pnpm lint`         | Lint code with Oxlint                              |
-| `pnpm lint:fix`     | Apply safe Oxlint fixes                            |
+Use Node.js 24 or later and pnpm.
 
-## Project structure
-
-```
-src/
-├── content/
-│   └── blog/           # Markdown blog posts (YYYY-MM-DD-slug.md)
-├── content.config.ts   # Astro content collection schema
-├── middleware.ts        # Legacy URL redirect handler
-├── pages/
-│   ├── index.astro
-│   ├── about.astro
-│   ├── speaking.astro
-│   ├── posts/
-│   │   ├── index.astro
-│   │   └── [year]/[month]/[slug].astro
-│   └── feed.xml.ts     # RSS feed
-├── layouts/
-│   └── Base.astro      # Root HTML layout (head, analytics)
-├── components/         # Astro + React components
-└── css/                # Tailwind and Prism styles
+```sh
+pnpm install
+EMDASH_SITE_URL=http://localhost:4321 pnpm dev
 ```
 
-## Blog posts and content collections
+Open `http://localhost:4321/_emdash/admin` for the CMS. Local development uses passkeys and emulated D1/R2 storage under `.wrangler/`. A fresh clone needs the CMS schema and content restored from an approved backup or site export; generated types do not provision them.
 
-Posts are Markdown files in `src/content/blog/` following the naming convention `YYYY-MM-DD-slug.md`. They are loaded via Astro's [Content Collections](https://docs.astro.build/en/guides/content-collections/) with a glob loader defined in `src/content.config.ts`.
+Posts, About, and Speaking are editable in EmDash and update without rebuilding. `_archive/content/` preserves the original Markdown and is not read at runtime. Historical images remain static assets in `public/`; keep those URLs available.
 
-Each post supports the following frontmatter:
+Keep credentials in ignored environment files or Cloudflare Worker secrets. Preserve existing `EMDASH_ENCRYPTION_KEY` values with database backups if encrypted CMS settings are used.
 
-| Field           | Required | Description                                                      |
-| --------------- | -------- | ---------------------------------------------------------------- |
-| `title`         | Yes      | Post title                                                       |
-| `date`          | Yes      | Publish date (ISO 8601)                                          |
-| `author`        | No       | Author name                                                      |
-| `summary`       | No       | Short description (used in RSS and post listings)                |
-| `redirect_link` | No       | External URL — makes the post a link-style post pointing offsite |
+## Checks and deployment
 
-Run `pnpm create` for an interactive prompt that scaffolds the frontmatter and file automatically.
+```sh
+pnpm lint
+pnpm format:check
+pnpm test
+pnpm build
+```
 
-## Middleware
+The test command skips HTTP checks unless a local server is specified:
 
-`src/middleware.ts` handles **legacy Blogger URL redirects** (301) so that old URLs previously indexed by Google continue to resolve:
+```sh
+EMDASH_RENDER_TEST_URL=http://localhost:4321 \
+  EMDASH_PUBLIC_TEST_URL=http://localhost:4321 \
+  EMDASH_NOT_FOUND_TEST_URL=http://localhost:4321 pnpm test
+```
 
-- `/{year}/{month}/{slug}.html` → `/posts/{year}/{month}/{slug}`
-- `/{year}/{month}/{slug}` → `/posts/{year}/{month}/{slug}`
+The HTTP checks expect the imported archive and accept only loopback targets.
 
-The `/archive` → `/posts` redirect is a static redirect configured in `astro.config.ts`.
+Run `pnpm run deploy` to build and deploy through Wrangler. For an EmDash upgrade with database migrations, retain a database recovery point and media backup, follow the generated upgrade work order, and deploy the same build used for migration with `pnpm exec wrangler deploy` rather than rebuilding. GitHub Actions deployment also remains configured in `.github/workflows/deploy.yml`.
 
-## Deployment
+## Admin access
 
-The site deploys to Cloudflare Workers via GitHub Actions (`.github/workflows/deploy.yml`) on push to `main`. All pages use `export const prerender = true`, so the site builds as fully static HTML and is served via Cloudflare's asset pipeline.
+Production uses Cloudflare Access as EmDash's login provider. The Access identity must match an existing EmDash account; automatic provisioning and role synchronization are disabled. Set the protected application's AUD tag as the runtime `CF_ACCESS_AUDIENCE` Worker secret.
 
-Environment variables required at build time:
-
-| Variable               | Description                     |
-| ---------------------- | ------------------------------- |
-| `PUBLIC_SITE_URL`      | Canonical site URL              |
-| `PUBLIC_ANALYTICS_URL` | Counterscale tracker script URL |
+Protect `/_emdash` and `/_emdash/*` with an owner-only Access policy. Allow public uploads through a more-specific Bypass application for `/_emdash/api/media/file/*`, not the broader media API. Access applications and policies are managed in Cloudflare, outside this repository.
