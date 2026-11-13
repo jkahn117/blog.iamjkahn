@@ -1,7 +1,7 @@
 import cloudflare from "@astrojs/cloudflare";
 import react from "@astrojs/react";
 import sitemap from "@astrojs/sitemap";
-import { d1, r2 } from "@emdash-cms/cloudflare";
+import { access, d1, r2 } from "@emdash-cms/cloudflare";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
 import emdash from "emdash/astro";
@@ -39,6 +39,12 @@ export default defineConfig({
       siteUrl: process.env.EMDASH_SITE_URL,
       database: d1({ binding: "DB" }),
       storage: r2({ binding: "MEDIA" }),
+      auth: access({
+        teamDomain: "iamjkahn.cloudflareaccess.com",
+        audienceEnvVar: "CF_ACCESS_AUDIENCE",
+        autoProvision: false,
+        syncRoles: false,
+      }),
     }),
   ],
   vite: {
