@@ -36,7 +36,7 @@ EMDASH_RENDER_TEST_URL=http://localhost:4321 \
 
 The HTTP checks expect the imported archive and accept only loopback targets.
 
-Run `pnpm run deploy` to build and deploy through Wrangler. For an EmDash upgrade with database migrations, retain a database recovery point and media backup, follow the generated upgrade work order, and deploy the same build used for migration with `pnpm exec wrangler deploy` rather than rebuilding. GitHub Actions deployment also remains configured in `.github/workflows/deploy.yml`.
+Run `pnpm run deploy` to build and deploy through Wrangler. For an EmDash upgrade with database migrations, retain a database recovery point and media backup, follow the generated upgrade work order, and deploy the same build used for migration with `pnpm exec wrangler deploy` rather than rebuilding. GitHub Actions in `.github/workflows/deploy.yml` is manual-only. Pushes and pull requests do not run checks or deploy. Use Run workflow in the Actions tab to run checks and deploy explicitly.
 
 ## Admin access
 
