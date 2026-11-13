@@ -39,7 +39,7 @@ export default defineConfig({
       ],
     }),
     emdash({
-      siteUrl: process.env.EMDASH_SITE_URL,
+      siteUrl: process.env.EMDASH_SITE_URL ?? "https://blog.iamjkahn.com",
       database: d1({ binding: "DB" }),
       storage: r2({ binding: "MEDIA" }),
       auth: access({

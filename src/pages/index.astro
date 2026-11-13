@@ -138,10 +138,8 @@ const blockComponents = defineBlockComponents<PageLayoutBlock>({
     </div>
   </Container>
 
-  {home?.data.layout ? (
+  {home?.data.layout && (
     <Blocks value={home.data.layout} components={blockComponents} />
-  ) : (
-    <PhotoStrip />
   )}
 
   <Container class="mt-24 md:mt-28">
