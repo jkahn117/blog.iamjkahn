@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "emdash-production": {
+      "url": "https://blog.iamjkahn.com/_emdash/api/mcp",
+      "headers": {
+        "Authorization": "!sh -c 'token=$(op read \"op://Private/blog.iamjkahn/emdash-token\") && printf \"Bearer %s\" \"$token\"'",
+        "CF-Access-Client-Id": "!op read 'op://Private/blog.iamjkahn/cf-client-id'",
+        "CF-Access-Client-Secret": "!op read 'op://Private/blog.iamjkahn/cf-client-secret'",
+        "User-Agent": "iamjkahn-emdash-mcp/1.0"
+      },
+      "enabled": false,
+      "description": "Read-only access to the production EmDash CMS"
+    },
+    "cf-docs": {
+      "type": "http",
+      "url": "https://docs.mcp.cloudflare.com/mcp"
+    },
+    "astro": {
+      "type": "http",
+      "url": "https://mcp.docs.astro.build/mcp"
+    }
+  }
+}
