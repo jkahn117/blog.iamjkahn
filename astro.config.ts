@@ -25,7 +25,10 @@ export default defineConfig({
   prefetch: true,
   adapter: cloudflare({
     configPath: "./wrangler.jsonc",
-    imageService: "compile",
+    imageService: {
+      build: "compile",
+      runtime: "cloudflare-binding",
+    },
   }),
   integrations: [
     react(),
