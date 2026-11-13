@@ -80,16 +80,32 @@ const ogImageUrl = new URL(image, siteUrl).href;
       />
     )}
 
-    <!-- Dark mode: apply saved preference before first paint to prevent flash -->
+    <!-- Apply the theme before first paint, then follow system changes. -->
     <script is:inline>
       (function () {
-        var stored = localStorage.getItem("theme");
-        var prefersDark = window.matchMedia(
-          "(prefers-color-scheme: dark)",
-        ).matches;
-        if (stored === "dark" || (!stored && prefersDark)) {
-          document.documentElement.classList.add("dark");
+        var root = document.documentElement;
+        var system = window.matchMedia("(prefers-color-scheme: dark)");
+        var stored;
+        try {
+          stored = localStorage.getItem("theme");
+        } catch {
+          // Storage may be unavailable. Follow the system for this visit.
         }
+        root.dataset.theme =
+          stored === "light" || stored === "dark" ? stored : "system";
+
+        function applyTheme() {
+          var preference = root.dataset.theme;
+          var dark =
+            preference === "dark" ||
+            (preference === "system" && system.matches);
+          root.classList.toggle("dark", dark);
+          root.style.colorScheme = dark ? "dark" : "light";
+        }
+
+        applyTheme();
+        system.addEventListener("change", applyTheme);
+        document.addEventListener("theme-change", applyTheme);
       })();
     </script>
   </head>
