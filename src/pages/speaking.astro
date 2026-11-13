@@ -1,78 +1,72 @@
 ---
-// After approved CMS provisioning, change this literal to false. See docs/speaking-cms.md.
-export const prerender = true;
+export const prerender = false;
+
+import { getEmDashEntry } from "emdash";
+import { PortableText } from "emdash/ui";
 
 import Card from "@/components/Card/Card.astro";
 import CardCta from "@/components/Card/CardCta.astro";
 import CardDescription from "@/components/Card/CardDescription.astro";
 import CardEyebrow from "@/components/Card/CardEyebrow.astro";
 import CardTitle from "@/components/Card/CardTitle.astro";
+import NotFound from "@/components/NotFound.astro";
 import Section from "@/components/Section.astro";
 import SimpleLayout from "@/components/SimpleLayout.astro";
 import Base from "@/layouts/Base.astro";
-import {
-  speakingGroups,
-  loadSpeakingPage,
-  type SpeakingPage,
-} from "@/lib/speaking";
-import { speakingSnapshot } from "@/lib/speaking-snapshot";
+import { speakingGroups, getSpeakingTalks } from "@/lib/speaking";
 
-let page: SpeakingPage = speakingSnapshot;
-if (!prerender) {
-  const { getEmDashEntry, getRequestContext } = await import("emdash");
-  try {
-    const {
-      page: content,
-      isPreview,
-      cacheHint,
-    } = await loadSpeakingPage(
-      (collection, id) => getEmDashEntry<"speaking", unknown>(collection, id),
-      getRequestContext()?.preview,
-    );
-    if (!content) {
-      return new Response("Not found", {
-        status: 404,
-        headers: { "Cache-Control": "no-store" },
-      });
-    }
-    page = content;
-    if (isPreview) {
-      Astro.response.headers.set("Cache-Control", "private, no-store");
-      Astro.response.headers.set("X-Robots-Tag", "noindex, nofollow");
-    } else if (Astro.cache?.enabled) {
-      Astro.cache.set(cacheHint);
-    }
-  } catch (error) {
-    console.error("Unable to load Speaking content", error);
-    return new Response("Speaking is temporarily unavailable", {
-      status: 503,
-      headers: { "Cache-Control": "no-store" },
-    });
-  }
+const result = await getEmDashEntry("pages", "speaking");
+if (result.error && result.error.name !== "LiveEntryNotFoundError")
+  throw result.error;
+const page =
+  result.entry?.data.slug === "speaking" &&
+  (result.isPreview || result.entry.data.status === "published")
+    ? result.entry
+    : null;
+const { talks, isPreview, cacheHints } = page
+  ? await getSpeakingTalks()
+  : {
+      talks: [],
+      isPreview: false,
+      cacheHints: [],
+    };
+if (!page) Astro.response.status = 404;
+if (!page || result.isPreview || isPreview) {
+  Astro.response.headers.set("Cache-Control", "private, no-store");
+  Astro.response.headers.set("X-Robots-Tag", "noindex, nofollow");
+  Astro.response.headers.set("Referrer-Policy", "no-referrer");
+} else if (Astro.cache?.enabled) {
+  Astro.cache.set(result.cacheHint);
+  for (const hint of cacheHints) Astro.cache.set(hint);
 }
 ---
 
-<Base title="Speaking" description="Speaking gigs at conferences, etc.">
-  <SimpleLayout title={page.title} intro={page.intro}>
-    <div class="space-y-20">
-      {speakingGroups.map((group) => (
-        <Section title={group.title}>
-          <div class="space-y-16">
-            {page.talks
-              .filter((talk) => talk.group === group.id)
-              .map((a) => (
-                <Card as="article">
-                  <CardTitle as="h3" href={a.href}>
-                    {a.title}
-                  </CardTitle>
-                  <CardEyebrow decorate>{a.event}</CardEyebrow>
-                  <CardDescription>{a.description}</CardDescription>
-                  <CardCta>{a.cta}</CardCta>
-                </Card>
-              ))}
-          </div>
-        </Section>
-      ))}
-    </div>
-  </SimpleLayout>
-</Base>
+{page ? (
+  <Base title="Speaking" description="Speaking gigs at conferences, etc.">
+    <SimpleLayout title={page.data.title}>
+      <PortableText slot="intro" value={page.data.content ?? []} />
+      <div class="space-y-20">
+        {speakingGroups.map((group) => (
+          <Section title={group.title}>
+            <div class="space-y-16">
+              {talks
+                .filter((talk) => talk.group === group.id)
+                .map((a) => (
+                  <Card as="article">
+                    <CardTitle as="h3" href={a.href}>
+                      {a.title}
+                    </CardTitle>
+                    <CardEyebrow decorate>{a.event}</CardEyebrow>
+                    <CardDescription>{a.description}</CardDescription>
+                    <CardCta>{a.cta}</CardCta>
+                  </Card>
+                ))}
+            </div>
+          </Section>
+        ))}
+      </div>
+    </SimpleLayout>
+  </Base>
+) : (
+  <NotFound />
+)}

@@ -1,3 +1,4 @@
+import { getEmDashCollection, getEmDashEntry, getRequestContext } from "emdash";
 import type { CacheHint } from "emdash";
 
 export const speakingGroups = [
@@ -8,26 +9,15 @@ export const speakingGroups = [
 
 type SpeakingGroup = (typeof speakingGroups)[number]["id"];
 
-export interface SpeakingTalk {
+interface SpeakingTalk {
+  id: string;
   group: SpeakingGroup;
   title: string;
   description: string;
   event: string;
   href: string;
   cta: string;
-}
-
-export interface SpeakingPage {
-  title: string;
-  intro: string;
-  talks: SpeakingTalk[];
-}
-
-function record(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error("Invalid Speaking content object.");
-  }
-  return value as Record<string, unknown>;
+  sortOrder: number;
 }
 
 function text(value: unknown): string {
@@ -37,80 +27,84 @@ function text(value: unknown): string {
   return value;
 }
 
-function destination(value: unknown): string {
-  const href = text(value);
+function readTalk(value: unknown): SpeakingTalk {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("Invalid Speaking entry.");
+  }
+  const talk = value as Record<string, unknown>;
+  const group = speakingGroups.find(({ id }) => id === talk.group)?.id;
+  if (!group) throw new Error("Unknown Speaking group.");
+  if (
+    typeof talk.sort_order !== "number" ||
+    !Number.isInteger(talk.sort_order)
+  ) {
+    throw new Error("Speaking display order must be an integer.");
+  }
+  const href = text(talk.href);
   const url = new URL(href);
   if (
     !/^https?:\/\//i.test(href) ||
     url.username ||
     url.password ||
-    href !== href.trim() ||
     [...href].some(
       (character) =>
         character.charCodeAt(0) <= 32 || character.charCodeAt(0) === 127,
     )
   ) {
     throw new Error(
-      "Speaking links must be absolute HTTP or HTTPS URLs without credentials.",
+      "Speaking links must use HTTP or HTTPS without credentials or whitespace.",
     );
   }
-  return url.href;
-}
-
-type SpeakingQuery = (
-  collection: "speaking",
-  id: string,
-) => Promise<{
-  entry: { data: unknown } | null;
-  error?: Error;
-  isPreview: boolean;
-  cacheHint: CacheHint;
-}>;
-
-export async function loadSpeakingPage(
-  query: SpeakingQuery,
-  preview?: { collection: string; id: string },
-) {
-  const id = preview?.collection === "speaking" ? preview.id : "speaking";
-  const result = await query("speaking", id);
-  if (result.error && result.error.name !== "LiveEntryNotFoundError") {
-    throw result.error;
-  }
   return {
-    page: readSpeakingPage(result.entry?.data, result.isPreview),
-    isPreview: result.isPreview,
-    cacheHint: result.cacheHint,
+    id: text(talk.id),
+    group,
+    title: text(talk.title),
+    description: text(talk.description),
+    event: text(talk.event),
+    href: url.href,
+    cta: text(talk.cta),
+    sortOrder: talk.sort_order,
   };
 }
 
-// Only EmDash's verified query result may grant preview access, never a URL parameter.
-export function readSpeakingPage(
-  data: unknown,
-  isPreview: boolean,
-): SpeakingPage | null {
-  if (data == null) return null;
-  const page = record(data);
-  if (page.slug !== "speaking" || (!isPreview && page.status !== "published")) {
-    return null;
-  }
-  if (!Array.isArray(page.talks)) {
-    throw new Error("Speaking talks must be a repeater array.");
+export async function getSpeakingTalks() {
+  const talks = new Map<string, SpeakingTalk>();
+  const cacheHints: CacheHint[] = [];
+  let cursor: string | undefined;
+  do {
+    const result = await getEmDashCollection("speaking", {
+      status: "published",
+      limit: 100,
+      cursor,
+    });
+    if (result.error) throw result.error;
+    cacheHints.push(result.cacheHint);
+    for (const entry of result.entries) {
+      if (entry.data.status === "published") {
+        const talk = readTalk(entry.data);
+        talks.set(talk.id, talk);
+      }
+    }
+    cursor = result.nextCursor;
+  } while (cursor);
+
+  let isPreview = false;
+  const preview = getRequestContext()?.preview;
+  if (preview?.collection === "speaking") {
+    const result = await getEmDashEntry("speaking", preview.id);
+    if (result.error && result.error.name !== "LiveEntryNotFoundError")
+      throw result.error;
+    if (result.isPreview && result.entry) {
+      const talk = readTalk(result.entry.data);
+      talks.set(talk.id, talk);
+      isPreview = true;
+    }
   }
   return {
-    title: text(page.title),
-    intro: text(page.intro),
-    talks: page.talks.map((value) => {
-      const talk = record(value);
-      const group = speakingGroups.find(({ id }) => id === talk.group)?.id;
-      if (!group) throw new Error("Unknown Speaking group.");
-      return {
-        group,
-        title: text(talk.title),
-        description: text(talk.description),
-        event: text(talk.event),
-        href: destination(talk.href),
-        cta: text(talk.cta),
-      };
-    }),
+    talks: [...talks.values()].sort(
+      (a, b) => a.sortOrder - b.sortOrder || a.id.localeCompare(b.id),
+    ),
+    isPreview,
+    cacheHints,
   };
 }

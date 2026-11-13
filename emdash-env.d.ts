@@ -41,9 +41,29 @@ export interface Post {
   terms?: Record<string, TaxonomyTerm[]>;
 }
 
+export interface Speaking {
+  id: string;
+  slug: string | null;
+  status: string;
+  title: string;
+  description: string;
+  event: string;
+  href: string;
+  cta: string;
+  group: "conferences" | "meetups" | "webinars";
+  sort_order: number;
+  createdAt: Date;
+  updatedAt: Date;
+  publishedAt: Date | null;
+  byline?: BylineSummary | null;
+  bylines?: ContentBylineCredit[];
+  terms?: Record<string, TaxonomyTerm[]>;
+}
+
 declare module "emdash" {
   interface EmDashCollections {
     pages: Page;
     posts: Post;
+    speaking: Speaking;
   }
 }

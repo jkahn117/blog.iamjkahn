@@ -30,7 +30,10 @@ export default defineConfig({
   integrations: [
     react(),
     sitemap({
-      customSitemaps: ["https://blog.iamjkahn.com/sitemap-posts.xml"],
+      customSitemaps: [
+        "https://blog.iamjkahn.com/sitemap-posts.xml",
+        "https://blog.iamjkahn.com/sitemap-pages.xml",
+      ],
     }),
     emdash({
       siteUrl: process.env.EMDASH_SITE_URL,

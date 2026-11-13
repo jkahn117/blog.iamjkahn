@@ -1,14 +1,37 @@
 ---
-export const prerender = true;
+export const prerender = false;
+
+import { getEmDashEntry } from "emdash";
 
 import AboutProfile from "@/components/AboutProfile.astro";
-import { aboutPageSeed } from "@/lib/about";
+import NotFound from "@/components/NotFound.astro";
 
-// Keep the existing public bio until CMS provisioning and activation are approved.
-// See docs/about-cms.md for the request-time activation diff.
+const { entry, isPreview, cacheHint, error } = await getEmDashEntry(
+  "pages",
+  "about",
+);
+if (error && error.name !== "LiveEntryNotFoundError") throw error;
+const page =
+  entry?.data.slug === "about" &&
+  (isPreview || entry.data.status === "published")
+    ? entry
+    : null;
+if (!page) Astro.response.status = 404;
+if (!page || isPreview) {
+  Astro.response.headers.set("Cache-Control", "private, no-store");
+  Astro.response.headers.set("X-Robots-Tag", "noindex, nofollow");
+  Astro.response.headers.set("Referrer-Policy", "no-referrer");
+} else if (Astro.cache?.enabled) {
+  Astro.cache.set(cacheHint);
+}
 ---
 
-<AboutProfile
-  title={aboutPageSeed.data.title}
-  content={aboutPageSeed.data.content}
-/>
+{page ? (
+  <AboutProfile
+    title={page.data.title}
+    content={page.data.content}
+    edit={page.edit}
+  />
+) : (
+  <NotFound />
+)}
