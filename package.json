@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "mkdir -p dist && astro dev",
     "build": "wrangler types && astro build",
+    "deploy": "pnpm build && wrangler deploy",
     "preview": "wrangler types && astro preview",
     "test": "tsc -p ./tests/tsconfig.json && node --test ./tests/*.test.ts",
     "format": "oxfmt",
