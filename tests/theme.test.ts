@@ -3,6 +3,11 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import { runInNewContext } from "node:vm";
 
+import {
+  getNextThemePreference,
+  type ThemePreference,
+} from "../src/lib/theme.ts";
+
 const layout = readFileSync(
   new URL("../src/layouts/Base.astro", import.meta.url),
   "utf8",
@@ -76,6 +81,14 @@ for (const preference of ["light", "dark"]) {
     assert.equal(theme.root.classList.dark, dark);
   });
 }
+
+test("the theme control cycles System, Light, Dark, then System", () => {
+  let preference: ThemePreference = "system";
+  for (const expected of ["light", "dark", "system"] as const) {
+    preference = getNextThemePreference(preference);
+    assert.equal(preference, expected);
+  }
+});
 
 test("selecting an override applies immediately; System resumes live updates", () => {
   const theme = setup(null, false);
