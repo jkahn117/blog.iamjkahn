@@ -4,6 +4,10 @@
 
 This is Josh Kahn's personal blog, built with Astro and EmDash on Cloudflare Workers. Optimize for secure publishing, preserved content and URLs, and Josh's visual approval. Prefer the smallest working change and native CMS features.
 
+## Tickets
+
+Use GitHub Issues in this repository. Follow the `tickets` skill when creating, reading, or updating tickets, including its triage labels and blocking conventions.
+
 ## Verification
 
 Use existing checks and focused smoke tests. Add unit tests for security-sensitive logic, data integrity, or meaningful custom behavior; use direct CMS and browser checks for page layout and routine CMS integration. Avoid new test infrastructure or documentation unless the task needs it.
