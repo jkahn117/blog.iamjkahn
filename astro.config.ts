@@ -1,3 +1,5 @@
+import { fileURLToPath } from "node:url";
+
 import cloudflare from "@astrojs/cloudflare";
 import { cacheCloudflare } from "@astrojs/cloudflare/cache";
 import react from "@astrojs/react";
@@ -59,6 +61,18 @@ export default defineConfig({
       ],
     }),
     emdash({
+      plugins: [
+        {
+          id: "migration-fields",
+          version: "1.0.0",
+          entrypoint: fileURLToPath(
+            new URL("./src/admin/migration-fields-plugin.ts", import.meta.url),
+          ),
+          adminEntry: fileURLToPath(
+            new URL("./src/admin/migration-fields.tsx", import.meta.url),
+          ),
+        },
+      ],
       toolbar: "client",
       middleware: { outer: "./src/route-cache-middleware.ts" },
       siteUrl: process.env.EMDASH_SITE_URL ?? "https://blog.iamjkahn.com",
