@@ -6,7 +6,7 @@ import { getPublicPosts } from "@/lib/posts";
 export const prerender = false;
 
 export async function GET(context: APIContext) {
-  const { posts, cacheHint } = await getPublicPosts();
+  const { posts, cacheHint } = await getPublicPosts({ limit: 10 });
   if (context.cache?.enabled) context.cache.set(cacheHint);
 
   return rss({
@@ -14,7 +14,7 @@ export async function GET(context: APIContext) {
     description:
       "Random musings of a solutions architect, speaker, technology guy, dad",
     site: context.site!,
-    items: posts.slice(0, 20).map((post) => ({
+    items: posts.map((post) => ({
       title: post.title,
       pubDate: post.date,
       description: post.excerpt,

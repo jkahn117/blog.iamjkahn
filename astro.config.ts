@@ -1,4 +1,5 @@
 import cloudflare from "@astrojs/cloudflare";
+import { cacheCloudflare } from "@astrojs/cloudflare/cache";
 import react from "@astrojs/react";
 import sitemap from "@astrojs/sitemap";
 import { access, d1, r2 } from "@emdash-cms/cloudflare";
@@ -23,6 +24,25 @@ export default defineConfig({
   output: "server",
   trailingSlash: "never",
   prefetch: true,
+  cache: { provider: cacheCloudflare() },
+  routeRules: {
+    "/": { maxAge: 3600, tags: ["posts", "pages"] },
+    "/posts": { maxAge: 3600, tags: ["posts"] },
+    "/posts/[year]/[month]/[slug]": { maxAge: 3600, tags: ["posts"] },
+    "/about": { maxAge: 3600, tags: ["pages"] },
+    "/speaking": { maxAge: 3600, tags: ["pages", "speaking"] },
+    "/feed.xml": { maxAge: 3600, tags: ["posts"] },
+    "/sitemap-posts.xml": { maxAge: 3600, tags: ["posts"] },
+    "/sitemap-pages.xml": { maxAge: 3600, tags: ["pages"] },
+    "/sitemap-speaking.xml": {
+      maxAge: 3600,
+      tags: ["speaking", "emdash:settings"],
+    },
+    "/sitemap.xml": {
+      maxAge: 3600,
+      tags: ["posts", "pages", "speaking", "emdash:settings"],
+    },
+  },
   adapter: cloudflare({
     configPath: "./wrangler.jsonc",
     imageService: {
@@ -39,6 +59,8 @@ export default defineConfig({
       ],
     }),
     emdash({
+      toolbar: "client",
+      middleware: { outer: "./src/route-cache-middleware.ts" },
       siteUrl: process.env.EMDASH_SITE_URL ?? "https://blog.iamjkahn.com",
       database: d1({ binding: "DB" }),
       storage: r2({ binding: "MEDIA" }),

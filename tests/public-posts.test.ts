@@ -1,10 +1,16 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { registerHooks } from "node:module";
+import test, { after } from "node:test";
 
 import { XMLParser } from "fast-xml-parser";
 
 import type { Post } from "../emdash-env.ts";
-import { getPostDate, getPostPath, toPublicPost } from "../src/lib/posts.ts";
+import {
+  getPostDate,
+  getPostPath,
+  getPublicPosts,
+  toPublicPost,
+} from "../src/lib/posts.ts";
 import archive from "./fixtures/archive-posts.json" with { type: "json" };
 
 function postFixture(overrides: Partial<Post> = {}): Post {
@@ -24,18 +30,21 @@ function postFixture(overrides: Partial<Post> = {}): Post {
   };
 }
 
-test("public post helpers prefer historical dates and fall back to publishedAt", () => {
-  const historical = new Date("2007-11-01T00:48:36.000Z");
-  assert.equal(getPostDate(postFixture()).getTime(), historical.getTime());
+test("public post dates use publishedAt, never the rollback legacy field", () => {
+  assert.equal(
+    getPostDate(postFixture()).toISOString(),
+    "2020-02-03T00:00:00.000Z",
+  );
   assert.equal(
     getPostDate(postFixture({ legacy_published_at: "not-a-date" })).getTime(),
     new Date("2020-02-03T00:00:00.000Z").getTime(),
   );
   assert.throws(
-    () =>
-      getPostDate(
-        postFixture({ legacy_published_at: undefined, publishedAt: null }),
-      ),
+    () => getPostDate(postFixture({ publishedAt: null })),
+    /no valid publication date/,
+  );
+  assert.throws(
+    () => getPostDate(postFixture({ publishedAt: new Date("invalid") })),
     /no valid publication date/,
   );
 });
@@ -43,7 +52,12 @@ test("public post helpers prefer historical dates and fall back to publishedAt",
 test("historical post paths stay fixed when the current slug changes", () => {
   assert.equal(getPostPath(postFixture()), "/posts/2020/02/fixture-post");
   assert.equal(
-    getPostPath(postFixture({ slug: "renamed-post" })),
+    getPostPath(
+      postFixture({
+        slug: "renamed-post",
+        publishedAt: new Date("2026-12-01T00:00:00.000Z"),
+      }),
+    ),
     "/posts/2020/02/fixture-post",
   );
   for (const legacy_route of [
@@ -64,7 +78,6 @@ test("historical post paths stay fixed when the current slug changes", () => {
 test("new post paths use publication dates and creation dates for draft previews", () => {
   const native = postFixture({
     legacy_route: undefined,
-    legacy_published_at: undefined,
   });
   assert.equal(getPostPath(native), "/posts/2020/02/fixture-post");
   assert.equal(
@@ -106,6 +119,199 @@ test("public conversion excludes drafts and keeps external posts pathless", () =
   );
 });
 
+// Fixture order records native ordering within equal publication timestamps.
+const publicArchive = archive
+  .filter((entry) => entry.status === "published")
+  .toSorted((left, right) => Date.parse(right.date) - Date.parse(left.date));
+
+let queryPosts: Post[] = [];
+let queryError: Error | undefined;
+const calls: Array<{
+  status: string;
+  limit: number;
+  cursor?: string;
+  orderBy: Record<string, string>;
+}> = [];
+const cms = {
+  getEmDashCollection: async (
+    collection: string,
+    filter: (typeof calls)[number],
+  ) => {
+    assert.equal(collection, "posts");
+    calls.push(filter);
+    const start = Number(filter.cursor ?? 0);
+    const entries = queryPosts.slice(start, start + filter.limit);
+    const end = start + entries.length;
+    return {
+      entries: entries.map((data) => ({ data })),
+      nextCursor: end < queryPosts.length ? String(end) : undefined,
+      error: queryError,
+      cacheHint: {
+        tags: ["collection:posts", `page:${start}`],
+        lastModified: new Date(2026, 0, calls.length),
+      },
+    };
+  },
+};
+Object.assign(globalThis, { __publicPostsCms: cms });
+const hooks = registerHooks({
+  resolve(specifier, context, nextResolve) {
+    if (specifier === "emdash") {
+      return {
+        url: `data:text/javascript,${encodeURIComponent("export const { getEmDashCollection } = globalThis.__publicPostsCms;")}`,
+        shortCircuit: true,
+      };
+    }
+    return nextResolve(specifier, context);
+  },
+});
+after(() => hooks.deregister());
+
+function resetQueries(posts: Post[]) {
+  queryPosts = posts;
+  queryError = undefined;
+  calls.length = 0;
+}
+
+const importedPosts = publicArchive.map((entry) =>
+  postFixture({
+    title: entry.title,
+    slug: entry.slug,
+    legacy_route: entry.path?.slice("/posts/".length),
+    redirect_link: entry.path ? undefined : entry.href,
+    publishedAt: new Date(entry.date),
+  }),
+);
+
+test("bounded native queries return exactly five or ten without walking the archive", async () => {
+  for (const limit of [5, 10]) {
+    resetQueries(importedPosts);
+    const { posts } = await getPublicPosts({ limit });
+    assert.equal(posts.length, limit);
+    assert.deepEqual(
+      posts.map((post) => post.href),
+      publicArchive.slice(0, limit).map((post) => post.href),
+    );
+    assert.deepEqual(calls, [
+      {
+        status: "published",
+        limit,
+        cursor: undefined,
+        orderBy: { published_at: "desc" },
+      },
+    ]);
+  }
+});
+
+test("bounded queries fetch only the remaining count after ineligible paths", async () => {
+  const valid = (slug: string) =>
+    postFixture({ slug, legacy_route: undefined });
+  resetQueries([
+    postFixture({ legacy_route: "2020/13/invalid" }),
+    valid("z-first"),
+    postFixture({ slug: null, legacy_route: undefined }),
+    valid("a-second"),
+    postFixture({ status: "draft" }),
+    postFixture({
+      legacy_route: "invalid",
+      redirect_link: "https://example.com/external",
+    }),
+    valid("third"),
+    postFixture({ legacy_route: "invalid" }),
+    valid("fourth"),
+    valid("fifth"),
+    valid("not-needed"),
+  ]);
+  const { posts, cacheHint } = await getPublicPosts({ limit: 5 });
+  assert.deepEqual(
+    posts.map((post) => post.href),
+    [
+      "/posts/2020/02/z-first",
+      "/posts/2020/02/a-second",
+      "https://example.com/external",
+      "/posts/2020/02/third",
+      "/posts/2020/02/fourth",
+    ],
+  );
+  assert.deepEqual(
+    calls.map(({ limit, cursor }) => ({ limit, cursor })),
+    [
+      { limit: 5, cursor: undefined },
+      { limit: 3, cursor: "5" },
+      { limit: 1, cursor: "8" },
+    ],
+  );
+  assert.deepEqual(cacheHint.tags, [
+    "collection:posts",
+    "page:0",
+    "page:5",
+    "page:8",
+  ]);
+  assert.equal(
+    cacheHint.lastModified?.getTime(),
+    new Date(2026, 0, 3).getTime(),
+  );
+});
+
+test("unlimited queries retain the full archive, local sitemap routes, and native tie order", async () => {
+  resetQueries(importedPosts);
+  const { posts } = await getPublicPosts();
+  assert.equal(posts.length, 112);
+  assert.deepEqual(
+    posts.map((post) => post.href),
+    publicArchive.map((post) => post.href),
+  );
+  assert.deepEqual(
+    posts.filter((post) => post.path).map((post) => post.path),
+    publicArchive.filter((post) => post.path).map((post) => post.path),
+  );
+  assert.equal(posts.filter((post) => post.path).length, 97);
+  assert.deepEqual(
+    calls.map(({ limit, cursor }) => ({ limit, cursor })),
+    [
+      { limit: 100, cursor: undefined },
+      { limit: 100, cursor: "100" },
+    ],
+  );
+  assert.deepEqual(
+    posts
+      .filter((post) => post.date.toISOString() === "2020-06-04T05:00:00.000Z")
+      .map((post) => post.title),
+    [
+      "Building a GraphQL interface to Amazon QLDB with AWS AppSync: Part 2",
+      "Building a GraphQL interface to Amazon QLDB with AWS AppSync: Part 1",
+    ],
+  );
+});
+
+test("total limits validate before querying and larger limits use native batches", async () => {
+  resetQueries(importedPosts);
+  for (const limit of [
+    0,
+    -1,
+    1.5,
+    NaN,
+    Infinity,
+    Number.MAX_SAFE_INTEGER + 1,
+  ]) {
+    await assert.rejects(getPublicPosts({ limit }), /positive safe integer/);
+  }
+  assert.equal(calls.length, 0);
+  assert.equal((await getPublicPosts({ limit: 105 })).posts.length, 105);
+  assert.deepEqual(
+    calls.map((call) => call.limit),
+    [100, 5],
+  );
+  resetQueries(importedPosts.slice(0, 2));
+  assert.equal((await getPublicPosts({ limit: 5 })).posts.length, 2);
+  assert.equal(calls.length, 1);
+  resetQueries([]);
+  assert.deepEqual((await getPublicPosts({ limit: 5 })).posts, []);
+  assert.equal(calls.length, 1);
+  queryError = new Error("query failed");
+  await assert.rejects(getPublicPosts({ limit: 5 }), /query failed/);
+});
+
 // Read-only checks against an unchanged local archive import:
 // EMDASH_PUBLIC_TEST_URL=http://localhost:4321 pnpm test
 // The snapshot keeps archive contracts independent of retired import tooling.
@@ -127,19 +333,13 @@ test(
     const published = archive.filter((entry) => entry.status === "published");
     assert.equal(published.length, 112);
     assert.equal(archive.filter((entry) => entry.status === "draft").length, 1);
-    const publicPosts = published
-      .map((entry) => ({
-        title: entry.title,
-        date: new Date(entry.date),
-        href: entry.href,
-        path: entry.path,
-        slug: entry.slug,
-      }))
-      .sort(
-        (left, right) =>
-          right.date.getTime() - left.date.getTime() ||
-          left.href.localeCompare(right.href),
-      );
+    const publicPosts = publicArchive.map((entry) => ({
+      title: entry.title,
+      date: new Date(entry.date),
+      href: entry.href,
+      path: entry.path,
+      slug: entry.slug,
+    }));
     const localPosts = publicPosts.filter((entry) => entry.path);
     const externalPosts = publicPosts.filter((entry) => !entry.path);
     const draft = archive.find((entry) => entry.status === "draft")!;
@@ -190,13 +390,13 @@ test(
     );
 
     await t.test(
-      "homepage and RSS expose the latest four and twenty in effective-date order",
+      "homepage and RSS expose the latest five and ten in publication-date order",
       async () => {
-        const expected = publicPosts.slice(0, 4);
+        const expected = publicPosts.slice(0, 5);
         const home = await get("/");
         assert.equal(home.response.status, 200);
         const homeEntries = titleHrefPairs(home.body);
-        assert.equal(homeEntries.length, 4);
+        assert.equal(homeEntries.length, 5);
         assert.deepEqual(
           homeEntries.map((entry) => normalizeHref(entry.href!)),
           expected.map((entry) =>
@@ -216,18 +416,18 @@ test(
           link: string;
           pubDate: string;
         }>;
-        assert.equal(items.length, 20);
+        assert.equal(items.length, 10);
         assert.deepEqual(
           items.map((item) => normalizeHref(item.link)),
           publicPosts
-            .slice(0, 20)
+            .slice(0, 10)
             .map((entry) =>
               entry.path ? entry.path : new URL(entry.href).href,
             ),
         );
         assert.deepEqual(
           items.map((item) => new Date(item.pubDate).getTime()),
-          publicPosts.slice(0, 20).map((entry) => entry.date.getTime()),
+          publicPosts.slice(0, 10).map((entry) => entry.date.getTime()),
         );
       },
     );

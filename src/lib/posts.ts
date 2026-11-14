@@ -3,15 +3,10 @@ import type { CacheHint } from "emdash";
 import type { Post } from "../../emdash-env";
 
 export function getPostDate(
-  post: Pick<
-    Post,
-    "legacy_published_at" | "publishedAt" | "createdAt" | "status"
-  >,
+  post: Pick<Post, "publishedAt" | "createdAt" | "status">,
 ): Date {
-  const historical = new Date(post.legacy_published_at ?? "");
-  const date = Number.isNaN(historical.getTime())
-    ? (post.publishedAt ?? (post.status === "draft" ? post.createdAt : null))
-    : historical;
+  const date =
+    post.publishedAt ?? (post.status === "draft" ? post.createdAt : null);
   if (!date || Number.isNaN(date.getTime())) {
     throw new Error("Post has no valid publication date.");
   }
@@ -54,7 +49,10 @@ export function toPublicPost(post: Post) {
   };
 }
 
-export async function getPublicPosts() {
+export async function getPublicPosts({ limit }: { limit?: number } = {}) {
+  if (limit !== undefined && (!Number.isSafeInteger(limit) || limit <= 0)) {
+    throw new RangeError("Post limit must be a positive safe integer.");
+  }
   const { getEmDashCollection } = await import("emdash");
   const posts: NonNullable<ReturnType<typeof toPublicPost>>[] = [];
   const tags = new Set<string>();
@@ -63,7 +61,7 @@ export async function getPublicPosts() {
   do {
     const result = await getEmDashCollection<"posts", Post>("posts", {
       status: "published",
-      limit: 100,
+      limit: Math.min(100, limit === undefined ? 100 : limit - posts.length),
       cursor,
       orderBy: { published_at: "desc" },
     });
@@ -78,12 +76,7 @@ export async function getPublicPosts() {
       lastModified = modified;
     }
     cursor = result.nextCursor;
-  } while (cursor);
-
-  posts.sort(
-    (a, b) =>
-      b.date.getTime() - a.date.getTime() || a.href.localeCompare(b.href),
-  );
+  } while (cursor && (limit === undefined || posts.length < limit));
   const cacheHint: CacheHint = { tags: [...tags], lastModified };
   return { posts, cacheHint };
 }

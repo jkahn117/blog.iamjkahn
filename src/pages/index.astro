@@ -31,9 +31,8 @@ import { getPublicPosts } from "@/lib/posts";
 
 import type { PageLayoutBlock } from "../../emdash-env";
 
-const { posts: allPosts, cacheHint } = await getPublicPosts();
+const { posts, cacheHint } = await getPublicPosts({ limit: 5 });
 if (Astro.cache?.enabled) Astro.cache.set(cacheHint);
-const posts = allPosts.slice(0, 4);
 
 const resume = [
   {
