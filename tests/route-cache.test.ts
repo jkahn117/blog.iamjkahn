@@ -19,6 +19,63 @@ import { onRequest } from "../src/route-cache-middleware.ts";
 
 const routes = compileCacheRoutes(config.routeRules!, "/", "never");
 
+const cmsImagePath =
+  "/_image?href=%2F_emdash%2Fapi%2Fmedia%2Ffile%2Fphoto.jpg&w=576&h=640&f=webp&q=80";
+
+await test("CMS transformations cache for one day and retain validators", async () => {
+  for (const status of [200, 304]) {
+    const { context, cache, request } = fixture(cmsImagePath);
+    const response = await onRequest(
+      context,
+      async () =>
+        new Response(status === 304 ? null : "Image bytes", {
+          status,
+          headers: {
+            "Content-Type": "image/webp",
+            "Cache-Control": "public, max-age=0, must-revalidate",
+            ETag: 'W/"source-transform"',
+          },
+        }),
+    );
+    assert.ok(response instanceof Response);
+    applyCacheHeaders(cache, response, request);
+    assert.equal(
+      response.headers.get("Cache-Control"),
+      "public, max-age=86400",
+    );
+    assert.equal(
+      response.headers.get("Cloudflare-CDN-Cache-Control"),
+      "public, max-age=86400",
+    );
+    assert.equal(response.headers.get("ETag"), 'W/"source-transform"');
+  }
+});
+
+await test("image caching requires a valid CMS transform and raster response", async () => {
+  for (const [path, contentType] of [
+    [cmsImagePath.replace("w=576", "w=-1"), "image/webp"],
+    ["/_image?href=https://example.com/photo.jpg&w=576", "image/webp"],
+    [cmsImagePath, "text/html"],
+    [cmsImagePath, "image/svg+xml"],
+  ]) {
+    const { context, cache, request } = fixture(path);
+    const response = await onRequest(
+      context,
+      async () =>
+        new Response("Not cacheable", {
+          headers: { "Content-Type": contentType },
+        }),
+    );
+    assert.ok(response instanceof Response);
+    applyCacheHeaders(cache, response, request);
+    assert.equal(isCacheActive(cache), false);
+    assert.equal(
+      response.headers.get("Cloudflare-CDN-Cache-Control"),
+      "no-store",
+    );
+  }
+});
+
 function fixture(path: string, init?: RequestInit) {
   const request = new Request(`https://blog.iamjkahn.com${path}`, init);
   const cache = new AstroCache(provider(undefined));

@@ -1,10 +1,24 @@
 import type { MiddlewareHandler } from "astro";
+import {
+  matchInternalMediaKey,
+  parseTransformParams,
+} from "emdash/media/image-endpoint";
+
+const CMS_IMAGE_MAX_AGE = 86400;
 
 // Run outside EmDash so early setup/auth/runtime responses are checked too.
 export const onRequest: MiddlewareHandler = async (context, next) => {
   const { cache, request, url } = context;
   const isPreviewOrEdit =
     url.searchParams.has("_preview") || url.searchParams.has("_edit");
+  // Only opt valid CMS transformations in, not arbitrary /_image requests.
+  const isCmsImage =
+    url.pathname === "/_image" &&
+    matchInternalMediaKey(url.searchParams.get("href")) !== null &&
+    parseTransformParams(url.searchParams).ok;
+  if (isCmsImage && cache?.enabled) {
+    cache.set({ maxAge: CMS_IMAGE_MAX_AGE });
+  }
   // Capture the route rule before query/layout hints can enable caching.
   const hasPublicRule = cache?.options.maxAge !== undefined;
   let response: Response;
@@ -19,7 +33,11 @@ export const onRequest: MiddlewareHandler = async (context, next) => {
   if (
     !hasPublicRule ||
     cache.options.maxAge === undefined ||
-    response.status !== 200 ||
+    (response.status !== 200 && !(isCmsImage && response.status === 304)) ||
+    (isCmsImage &&
+      !/^image\/(?:webp|avif|jpeg|png)$/.test(
+        response.headers.get("Content-Type") ?? "",
+      )) ||
     !["GET", "HEAD"].includes(request.method) ||
     isPreviewOrEdit ||
     context.locals.user ||
@@ -36,6 +54,12 @@ export const onRequest: MiddlewareHandler = async (context, next) => {
     if (isPreviewOrEdit) {
       response.headers.set("Cache-Control", "private, no-store");
     }
+  } else if (isCmsImage) {
+    // CMS replacements at the same URL may remain stale for up to one day.
+    response.headers.set(
+      "Cache-Control",
+      `public, max-age=${CMS_IMAGE_MAX_AGE}`,
+    );
   } else {
     // Browsers cannot receive EmDash's tag purges. Revalidate every visit.
     response.headers.set("Cache-Control", "no-cache");
