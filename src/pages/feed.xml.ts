@@ -1,18 +1,27 @@
 import rss from "@astrojs/rss";
 import type { APIContext } from "astro";
+import { getSiteSettingsWithCacheHint } from "emdash";
 
 import { getPublicPosts } from "@/lib/posts";
 
 export const prerender = false;
 
 export async function GET(context: APIContext) {
-  const { posts, cacheHint } = await getPublicPosts({ limit: 10 });
-  if (context.cache?.enabled) context.cache.set(cacheHint);
+  const [
+    { posts, cacheHint },
+    { data: settings, cacheHint: settingsCacheHint },
+  ] = await Promise.all([
+    getPublicPosts({ limit: 10 }),
+    getSiteSettingsWithCacheHint(),
+  ]);
+  if (context.cache?.enabled) {
+    context.cache.set(cacheHint);
+    context.cache.set(settingsCacheHint);
+  }
 
   return rss({
-    title: "iamjkahn",
-    description:
-      "Random musings of a solutions architect, speaker, technology guy, dad",
+    title: settings.title,
+    description: settings.tagline ?? "",
     site: context.site!,
     items: posts.map((post) => ({
       title: post.title,

@@ -26,12 +26,4 @@ if (!page || isPreview) {
 }
 ---
 
-{page ? (
-  <AboutProfile
-    title={page.data.title}
-    content={page.data.content}
-    edit={page.edit}
-  />
-) : (
-  <NotFound />
-)}
+{page ? <AboutProfile entry={page} /> : <NotFound />}

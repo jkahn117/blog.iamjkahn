@@ -42,7 +42,7 @@ if (!page || result.isPreview || isPreview) {
 ---
 
 {page ? (
-  <Base title="Speaking" description="Speaking gigs at conferences, etc.">
+  <Base title={page.data.title} seoEntry={page}>
     <SimpleLayout title={page.data.title}>
       <PortableText slot="intro" value={page.data.content ?? []} />
       <div class="space-y-20">

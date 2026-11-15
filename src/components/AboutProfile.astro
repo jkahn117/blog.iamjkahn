@@ -1,6 +1,6 @@
 ---
 import { Image } from "astro:assets";
-import type { ContentEntry } from "emdash";
+import { getSiteSettingsWithCacheHint, type ContentEntry } from "emdash";
 import { PortableText } from "emdash/ui";
 
 import Container from "@/components/Container.astro";
@@ -10,22 +10,23 @@ import LinkedInIcon from "@/components/icons/LinkedInIcon.astro";
 import XIcon from "@/components/icons/XIcon.astro";
 import portraitImage from "@/images/avatar.jpg";
 import Base from "@/layouts/Base.astro";
+import { getSocialLinks } from "@/lib/site-settings";
 
 import type { Page } from "../../emdash-env";
 
 interface Props {
-  title: Page["title"];
-  content: Page["content"];
-  edit?: ContentEntry<Page>["edit"];
+  entry: ContentEntry<Page>;
 }
 
-const { title, content, edit } = Astro.props;
+const { entry } = Astro.props;
+const { title, content } = entry.data;
+const { edit } = entry;
+const { data: settings, cacheHint } = await getSiteSettingsWithCacheHint();
+if (Astro.cache?.enabled) Astro.cache.set(cacheHint);
+const social = getSocialLinks(settings.social);
 ---
 
-<Base
-  title="About"
-  description="I'm Josh Kahn. Solutions architect, speaker, technology guy, dad."
->
+<Base title={title} seoEntry={entry} siteSettings={settings}>
   <Container class="mt-16 sm:mt-32">
     <div class="grid grid-cols-1 gap-y-16 lg:grid-cols-2 lg:grid-rows-[auto_1fr] lg:gap-y-12">
       <div class="lg:pl-20">
@@ -63,33 +64,39 @@ const { title, content, edit } = Astro.props;
               <span class="ml-4">Follow on Bluesky</span>
             </a>
           </li>
-          <li class="mt-4 flex">
-            <a
-              href="https://github.com/jkahn117"
-              class="group flex text-sm font-medium text-zinc-800 transition hover:text-teal-500 dark:text-zinc-200 dark:hover:text-teal-500"
-            >
-              <GitHubIcon class="h-6 w-6 flex-none fill-zinc-500 transition group-hover:fill-teal-500" />
-              <span class="ml-4">Follow on GitHub</span>
-            </a>
-          </li>
-          <li class="mt-4 flex">
-            <a
-              href="https://www.linkedin.com/in/joshuaakahn/"
-              class="group flex text-sm font-medium text-zinc-800 transition hover:text-teal-500 dark:text-zinc-200 dark:hover:text-teal-500"
-            >
-              <LinkedInIcon class="h-6 w-6 flex-none fill-zinc-500 transition group-hover:fill-teal-500" />
-              <span class="ml-4">Follow on LinkedIn</span>
-            </a>
-          </li>
-          <li class="mt-4 flex">
-            <a
-              href="https://x.com/joshuaakahn"
-              class="group flex text-sm font-medium text-zinc-800 transition hover:text-teal-500 dark:text-zinc-200 dark:hover:text-teal-500"
-            >
-              <XIcon class="h-6 w-6 flex-none fill-zinc-500 transition group-hover:fill-teal-500" />
-              <span class="ml-4">Follow on X</span>
-            </a>
-          </li>
+          {social.github && (
+            <li class="mt-4 flex">
+              <a
+                href={social.github}
+                class="group flex text-sm font-medium text-zinc-800 transition hover:text-teal-500 dark:text-zinc-200 dark:hover:text-teal-500"
+              >
+                <GitHubIcon class="h-6 w-6 flex-none fill-zinc-500 transition group-hover:fill-teal-500" />
+                <span class="ml-4">Follow on GitHub</span>
+              </a>
+            </li>
+          )}
+          {social.linkedin && (
+            <li class="mt-4 flex">
+              <a
+                href={social.linkedin}
+                class="group flex text-sm font-medium text-zinc-800 transition hover:text-teal-500 dark:text-zinc-200 dark:hover:text-teal-500"
+              >
+                <LinkedInIcon class="h-6 w-6 flex-none fill-zinc-500 transition group-hover:fill-teal-500" />
+                <span class="ml-4">Follow on LinkedIn</span>
+              </a>
+            </li>
+          )}
+          {social.twitter && (
+            <li class="mt-4 flex">
+              <a
+                href={social.twitter}
+                class="group flex text-sm font-medium text-zinc-800 transition hover:text-teal-500 dark:text-zinc-200 dark:hover:text-teal-500"
+              >
+                <XIcon class="h-6 w-6 flex-none fill-zinc-500 transition group-hover:fill-teal-500" />
+                <span class="ml-4">Follow on X</span>
+              </a>
+            </li>
+          )}
         </ul>
       </div>
     </div>

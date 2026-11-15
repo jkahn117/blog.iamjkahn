@@ -23,6 +23,7 @@ export interface Page {
   title: string;
   content?: PortableTextBlock[];
   layout?: PageLayoutBlock[];
+  work_history?: { "company": string; "title": string; "logo": { id: string; src?: string; alt?: string; caption?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown>; darkVariant?: { id: string; src?: string; alt?: string; caption?: string; width?: number; height?: number; filename?: string; mimeType?: string; blurhash?: string; dominantColor?: string; focalX?: number; focalY?: number; provider?: string; previewUrl?: string; meta?: Record<string, unknown> } }; "start": string; "end": string }[];
   createdAt: Date;
   updatedAt: Date;
   publishedAt: Date | null;

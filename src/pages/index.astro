@@ -2,8 +2,8 @@
 export const prerender = false;
 
 import { BookOpenIcon, BriefcaseIcon } from "@heroicons/react/24/outline";
-import { getEmDashEntry } from "emdash";
-import { Blocks, defineBlockComponents } from "emdash/ui";
+import { getEmDashEntry, getSiteSettingsWithCacheHint } from "emdash";
+import { Blocks, defineBlockComponents, Image } from "emdash/ui";
 
 import Bluesky from "@/components/Bluesky.astro";
 import Card from "@/components/Card/Card.astro";
@@ -20,57 +20,19 @@ import XIcon from "@/components/icons/XIcon.astro";
 import PhotoStrip from "@/components/PhotoStrip.astro";
 import Widget from "@/components/Widget/Widget.astro";
 import WidgetTitle from "@/components/Widget/WidgetTitle.astro";
-import logoAccenture from "@/images/logos/accenture.svg";
-import logoAmazon from "@/images/logos/amazon.svg";
-import logoApple from "@/images/logos/apple.svg";
-import logoCloudflare from "@/images/logos/cloudflare.svg";
-import logoStripe from "@/images/logos/stripe.svg";
 import Base from "@/layouts/Base.astro";
 import { formatDate } from "@/lib/formatDate.ts";
 import { getPublicPosts } from "@/lib/posts";
+import { getSocialLinks } from "@/lib/site-settings";
 
 import type { PageLayoutBlock } from "../../emdash-env";
 
 const { posts, cacheHint } = await getPublicPosts({ limit: 5 });
 if (Astro.cache?.enabled) Astro.cache.set(cacheHint);
-
-const resume = [
-  {
-    company: "Cloudflare",
-    title: "Principal Solutions Architect",
-    logo: logoCloudflare,
-    start: "2025",
-    end: "Present",
-  },
-  {
-    company: "Stripe",
-    title: "Solutions Architect",
-    logo: logoStripe,
-    start: "2025",
-    end: "2025",
-  },
-  {
-    company: "Amazon Web Services",
-    title: "Principal Solutions Architect",
-    logo: logoAmazon,
-    start: "2016",
-    end: "2025",
-  },
-  {
-    company: "Apple",
-    title: "iAd Technology Evangelist",
-    logo: logoApple,
-    start: "2013",
-    end: "2016",
-  },
-  {
-    company: "Accenture",
-    title: "Senior Manager",
-    logo: logoAccenture,
-    start: "2004",
-    end: "2013",
-  },
-];
+const { data: settings, cacheHint: settingsCacheHint } =
+  await getSiteSettingsWithCacheHint();
+if (Astro.cache?.enabled) Astro.cache.set(settingsCacheHint);
+const social = getSocialLinks(settings.social);
 
 const homeResult = await getEmDashEntry("pages", "home");
 if (homeResult.error && homeResult.error.name !== "LiveEntryNotFoundError") {
@@ -93,7 +55,7 @@ const blockComponents = defineBlockComponents<PageLayoutBlock>({
 });
 ---
 
-<Base>
+<Base seoEntry={home ?? undefined} siteSettings={settings}>
   <Container class="mt-9">
     <div class="max-w-2xl">
       <h1 class="text-4xl font-bold tracking-tight text-zinc-800 sm:text-5xl dark:text-zinc-100">
@@ -112,27 +74,33 @@ const blockComponents = defineBlockComponents<PageLayoutBlock>({
         >
           <BlueskyIcon class="h-6 w-6 fill-zinc-500 transition group-hover:fill-zinc-600 dark:fill-zinc-400 dark:group-hover:fill-zinc-300" />
         </a>
-        <a
-          href="https://github.com/jkahn117"
-          aria-label="Follow on GitHub"
-          class="group -m-1 p-1"
-        >
-          <GitHubIcon class="h-6 w-6 fill-zinc-500 transition group-hover:fill-zinc-600 dark:fill-zinc-400 dark:group-hover:fill-zinc-300" />
-        </a>
-        <a
-          href="https://www.linkedin.com/in/joshuaakahn/"
-          aria-label="Follow on LinkedIn"
-          class="group -m-1 p-1"
-        >
-          <LinkedInIcon class="h-6 w-6 fill-zinc-500 transition group-hover:fill-zinc-600 dark:fill-zinc-400 dark:group-hover:fill-zinc-300" />
-        </a>
-        <a
-          href="https://x.com/joshuaakahn"
-          aria-label="Follow on X"
-          class="group -m-1 p-1"
-        >
-          <XIcon class="h-6 w-6 fill-zinc-500 transition group-hover:fill-zinc-600 dark:fill-zinc-400 dark:group-hover:fill-zinc-300" />
-        </a>
+        {social.github && (
+          <a
+            href={social.github}
+            aria-label="Follow on GitHub"
+            class="group -m-1 p-1"
+          >
+            <GitHubIcon class="h-6 w-6 fill-zinc-500 transition group-hover:fill-zinc-600 dark:fill-zinc-400 dark:group-hover:fill-zinc-300" />
+          </a>
+        )}
+        {social.linkedin && (
+          <a
+            href={social.linkedin}
+            aria-label="Follow on LinkedIn"
+            class="group -m-1 p-1"
+          >
+            <LinkedInIcon class="h-6 w-6 fill-zinc-500 transition group-hover:fill-zinc-600 dark:fill-zinc-400 dark:group-hover:fill-zinc-300" />
+          </a>
+        )}
+        {social.twitter && (
+          <a
+            href={social.twitter}
+            aria-label="Follow on X"
+            class="group -m-1 p-1"
+          >
+            <XIcon class="h-6 w-6 fill-zinc-500 transition group-hover:fill-zinc-600 dark:fill-zinc-400 dark:group-hover:fill-zinc-300" />
+          </a>
+        )}
       </div>
     </div>
   </Container>
@@ -162,10 +130,10 @@ const blockComponents = defineBlockComponents<PageLayoutBlock>({
         <Widget>
           <WidgetTitle icon={BriefcaseIcon}>Work</WidgetTitle>
           <ol class="space-y-4">
-            {resume.map((role) => (
+            {(home?.data.work_history ?? []).map((role) => (
               <li class="flex gap-4">
                 <div class="relative mt-1 flex h-10 w-10 flex-none items-center justify-center rounded-full shadow-md ring-1 shadow-zinc-800/5 ring-zinc-900/5 dark:border dark:border-zinc-700/50 dark:bg-zinc-800 dark:ring-0">
-                  <img src={role.logo.src} alt="" class="h-7 w-7" />
+                  <Image image={role.logo} alt="" class="h-7 w-7" />
                 </div>
                 <dl class="flex flex-auto flex-wrap gap-x-2">
                   <dt class="sr-only">Company</dt>
