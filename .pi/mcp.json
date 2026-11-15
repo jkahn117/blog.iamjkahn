@@ -8,8 +8,8 @@
         "CF-Access-Client-Secret": "!op read 'op://Private/blog.iamjkahn/cf-client-secret'",
         "User-Agent": "iamjkahn-emdash-mcp/1.0"
       },
-      "enabled": false,
-      "description": "Read-only access to the production EmDash CMS"
+      "description": "Read-only access to the production EmDash CMS",
+      "enabled": false
     },
     "cf-docs": {
       "type": "http",

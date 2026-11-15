@@ -8,9 +8,13 @@ This is Josh Kahn's personal blog, built with Astro and EmDash on Cloudflare Wor
 
 Use GitHub Issues in this repository. Follow the `tickets` skill when creating, reading, or updating tickets, including its triage labels and blocking conventions.
 
+## Dev servers
+
+Always ask for explicit permission before starting a dev or preview server, including test tools and subagents. Request to build, test, or verify is not implicit permission to start a server.
+
 ## Verification
 
-Use existing checks and focused smoke tests. Add unit tests for security-sensitive logic, data integrity, or meaningful custom behavior; use direct CMS and browser checks for page layout and routine CMS integration. Avoid new test infrastructure or documentation unless the task needs it.
+Use existing checks and focused smoke tests. For small changes, test only new behavior. Don't duplicate existing coverage or fix unrelated test failures without asking.
 
 Treat security exposure and irreversible data loss as launch blockers. Report other defects separately, and let Josh decide whether to defer them. Visual changes need Josh's approval.
 
