@@ -1,6 +1,8 @@
+import { AppBskyEmbedExternal } from "@atproto/api";
 import { TID } from "@atproto/common-web";
 import type { PluginContext, StorageCollection } from "emdash";
 
+import { featuredImageId, uploadFeaturedImage } from "./image.ts";
 import { announcement } from "./post.ts";
 
 export type Delivery = {
@@ -15,6 +17,7 @@ export type Delivery = {
   rkey: string;
   accountDid: string | null;
   payload: ReturnType<typeof announcement> | null;
+  featuredImageId?: string;
   status: "pending" | "shared" | "skipped" | "failed" | "uncertain";
   phase: "preparing" | "creating" | "finished";
   code: string | null;
@@ -83,6 +86,7 @@ export async function recover(
       return "The source must still be published before sending.";
     try {
       record.payload = announcement({ ...source }, record.createdAt);
+      record.featuredImageId = featuredImageId({ ...source });
     } catch {
       return "Correct the announcement's title or destination before sending.";
     }
@@ -206,12 +210,14 @@ async function deliverInitial(
   };
   try {
     record.payload = announcement(content, now);
+    record.featuredImageId = featuredImageId(content);
   } catch {
     record = {
       ...record,
       status: "skipped",
       phase: "finished",
       code: "invalid_announcement",
+      payload: null,
     };
   }
   // This absence-only CAS is the initial claim. No existing state is retryable here.
@@ -375,6 +381,32 @@ async function sendAttempt(
   if (!source || source.status !== "published") {
     await finish("skipped", "source_not_published");
     return;
+  }
+  // Only prepare a thumbnail before the first possible create. Reconciliation
+  // must retain the exact durable payload, including an already uploaded blob.
+  if (record.accountDid === null && record.featuredImageId) {
+    try {
+      const thumb = await uploadFeaturedImage(
+        record.featuredImageId,
+        session.accessJwt,
+        ctx,
+      );
+      if (!AppBskyEmbedExternal.isMain(record.payload.embed))
+        throw new Error("INVALID_EMBED");
+      record = {
+        ...record,
+        payload: {
+          ...record.payload,
+          embed: {
+            ...record.payload.embed,
+            external: { ...record.payload.embed.external, thumb },
+          },
+        },
+      };
+    } catch {
+      await finish("failed", "featured_image_unavailable");
+      return;
+    }
   }
   record = {
     ...record,

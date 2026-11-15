@@ -7,6 +7,10 @@
     "directory": "./dist",
     "binding": "ASSETS",
   },
+  "images": {
+    "binding": "IMAGES",
+    "remote": false,
+  },
   "observability": {
     "enabled": true,
   },

@@ -61,25 +61,29 @@ export function announcement(
     throw new Error("INVALID_DESTINATION");
   }
   const url = destination.href;
-  const urlLength = [...segmenter.segment(url)].length;
-  const urlBytes = encoder.encode(url).length;
-  // Preserve the complete destination and at least one title grapheme.
-  const title = shorten(fields.title.trim(), 299 - urlLength, 2999 - urlBytes);
-  if (!title) throw new Error("DESTINATION_TOO_LONG");
-  const prefix = `${title}\n`;
+  const intro = "Check out my new post: ";
+  const title = shorten(
+    fields.title.trim(),
+    300 - intro.length,
+    3000 - encoder.encode(intro).length,
+  );
+  let text = intro + title;
+  const excerpt = publicPost.excerpt?.trim();
+  if (excerpt) {
+    const prefix = `${text}\n\n`;
+    const remaining = 300 - [...segmenter.segment(prefix)].length;
+    const bytes = 3000 - encoder.encode(prefix).length;
+    if (remaining > 1 && bytes > 3) {
+      let summary = shorten(excerpt, remaining, bytes);
+      if (summary !== excerpt)
+        summary = shorten(excerpt, remaining - 1, bytes - 3).trimEnd() + "…";
+      text = prefix + summary;
+    }
+  }
   const record: AppBskyFeedPost.Record = {
     $type: "app.bsky.feed.post",
-    text: prefix + url,
+    text,
     createdAt,
-    facets: [
-      {
-        index: {
-          byteStart: encoder.encode(prefix).length,
-          byteEnd: encoder.encode(prefix + url).length,
-        },
-        features: [{ $type: "app.bsky.richtext.facet#link", uri: url }],
-      },
-    ],
     embed: {
       $type: "app.bsky.embed.external",
       external: {

@@ -13,7 +13,13 @@ import {
   type BlockResponse,
   type ButtonElement,
 } from "@emdash-cms/blocks/server";
-import { ContentRepository, OptionsRepository, UserRepository } from "emdash";
+import {
+  ContentRepository,
+  MediaRepository,
+  OptionsRepository,
+  UserRepository,
+  type Storage,
+} from "emdash";
 import { createDialect } from "emdash/db/sqlite";
 
 import {
@@ -24,7 +30,9 @@ import {
   SESSION_URL,
   type Delivery,
 } from "../src/plugins/bluesky-share/delivery.ts";
+import { UPLOAD_URL } from "../src/plugins/bluesky-share/image.ts";
 import { createPlugin } from "../src/plugins/bluesky-share/index.ts";
+import { announcement } from "../src/plugins/bluesky-share/post.ts";
 
 // @emdash-cms/plugin-test 0.2.12 imports cloudflare:test and only accepts a
 // sandbox bundle in Vitest/workerd. This small native integration uses its
@@ -33,7 +41,8 @@ import { createPlugin } from "../src/plugins/bluesky-share/index.ts";
 registerHooks({
   resolve(specifier, context, nextResolve) {
     const modules: Record<string, string> = {
-      "cloudflare:workers": "export const env = process.env;",
+      "cloudflare:workers":
+        "export const env = new Proxy(process.env, { get(target, key) { return key === 'IMAGES' ? Reflect.get(globalThis, Symbol.for('bluesky-test-images')) : Reflect.get(target, key); } });",
       "virtual:emdash/config": "export default {};",
       "virtual:emdash/wait-until": "export const waitUntil = undefined;",
       "virtual:emdash/env": "export const env = undefined;",
@@ -97,6 +106,63 @@ async function nativeHost() {
   process.env.BLUESKY_APP_PASSWORD = PASSWORD;
   const requests: CapturedRequest[] = [];
   const logs: unknown[][] = [];
+  const images = new Map<string, Uint8Array>();
+  type TransformCall = {
+    bytes: Uint8Array;
+    transform: ImageTransform;
+    output: ImageOutputOptions;
+  };
+  const transforms: TransformCall[] = [];
+  let transformReply: (
+    call: TransformCall,
+  ) => Response | Promise<Response> = () =>
+    new Response(new Uint8Array([255, 216, 255, 217]), {
+      headers: { "Content-Type": "image/jpeg" },
+    });
+  const imagesKey = Symbol.for("bluesky-test-images");
+  const priorImages = Reflect.get(globalThis, imagesKey);
+  const imageBinding: Pick<Env["IMAGES"], "input"> = {
+    input(stream) {
+      let transform: ImageTransform = {};
+      const handle: ImageTransformer = {
+        transform(options) {
+          transform = options;
+          return handle;
+        },
+        draw() {
+          throw new Error("Unexpected image overlay");
+        },
+        async output(options) {
+          const bytes = new Uint8Array(
+            await new Response(stream).arrayBuffer(),
+          );
+          const call = { bytes, transform, output: options };
+          transforms.push(call);
+          const response = await transformReply(call);
+          return {
+            response: () => response,
+            contentType: () => response.headers.get("Content-Type") ?? "",
+            image: () => {
+              throw new Error("Unexpected raw image access");
+            },
+          };
+        },
+      };
+      return handle;
+    },
+  };
+  Reflect.set(globalThis, imagesKey, imageBinding);
+  let uploadReply: NetworkReply = ({ body }) =>
+    Response.json({
+      blob: {
+        $type: "blob",
+        ref: {
+          $link: "bafkreigh2akiscaildc6hmowxznwvwg4cebrq54x3uorbs4mvd5zdsz2cm",
+        },
+        mimeType: "image/jpeg",
+        size: (body.bytes as number[]).length,
+      },
+    });
   let sessionDid = DID;
   let sessionReply: NetworkReply = () =>
     Response.json({ did: sessionDid, accessJwt: TOKEN });
@@ -134,12 +200,15 @@ async function nativeHost() {
     const captured = {
       url: request.url,
       body:
-        request.method === "GET"
-          ? Object.fromEntries(url.searchParams)
-          : (JSON.parse(await request.text()) as Record<string, unknown>),
+        request.url === UPLOAD_URL
+          ? { bytes: [...new Uint8Array(await request.arrayBuffer())] }
+          : request.method === "GET"
+            ? Object.fromEntries(url.searchParams)
+            : (JSON.parse(await request.text()) as Record<string, unknown>),
       headers: request.headers,
     };
     requests.push(captured);
+    if (request.url === UPLOAD_URL) return uploadReply(captured);
     if (request.url === SESSION_URL) return sessionReply(captured);
     if (request.url === CREATE_URL) return createReply(captured);
     if (url.origin + url.pathname === GET_URL) return getReply(captured);
@@ -147,6 +216,7 @@ async function nativeHost() {
   };
   const deps = {
     config: {
+      storage: { entrypoint: `fixture-${crypto.randomUUID()}`, config: {} },
       database: {
         entrypoint: `fixture-${crypto.randomUUID()}`,
         type: "sqlite" as const,
@@ -155,7 +225,40 @@ async function nativeHost() {
     },
     plugins: [] as ReturnType<typeof createPlugin>[],
     createDialect,
-    createStorage: null,
+    createStorage: (): Storage => ({
+      async download(key) {
+        const bytes = images.get(key);
+        if (!bytes) throw new Error("Missing fixture image");
+        return {
+          body: new ReadableStream({
+            start(controller) {
+              controller.enqueue(bytes);
+              controller.close();
+            },
+          }),
+          contentType: "image/jpeg",
+          size: bytes.length,
+        };
+      },
+      async upload() {
+        throw new Error("Unused storage operation");
+      },
+      async delete() {
+        throw new Error("Unused storage operation");
+      },
+      async exists(key) {
+        return images.has(key);
+      },
+      async list() {
+        throw new Error("Unused storage operation");
+      },
+      async getSignedUploadUrl() {
+        throw new Error("Unused storage operation");
+      },
+      getPublicUrl() {
+        throw new Error("Unused storage operation");
+      },
+    }),
     createScheduler: null,
     createSandboxRunner: null,
     sandboxEnabled: false,
@@ -185,6 +288,11 @@ async function nativeHost() {
         type: "text",
       });
     }
+    await runtime.schemaRegistry.createField(slug, {
+      slug: "featured_image",
+      label: "Featured image",
+      type: "image",
+    });
   }
   const admin = await new UserRepository(runtime.db).create({
     email: "admin@example.test",
@@ -224,6 +332,30 @@ async function nativeHost() {
     },
     requests,
     logs,
+    transforms,
+    set transformReply(value: typeof transformReply) {
+      transformReply = value;
+    },
+    set imagesAvailable(value: boolean) {
+      Reflect.set(globalThis, imagesKey, value ? imageBinding : undefined);
+    },
+    async image(
+      bytes = new Uint8Array([255, 216, 255, 217]),
+      mimeType = "image/jpeg",
+    ) {
+      const key = `fixture-${crypto.randomUUID()}`;
+      images.set(key, bytes);
+      return new MediaRepository(runtime.db).create({
+        filename: "featured.jpeg",
+        storageKey: key,
+        mimeType,
+        size: bytes.length,
+        status: "ready",
+      });
+    },
+    set uploadReply(value: NetworkReply) {
+      uploadReply = value;
+    },
     admin,
     subscriber,
     fixture,
@@ -317,6 +449,7 @@ async function nativeHost() {
       await waitForDeferredTasks();
       await runtime.shutdown();
       await runtime.db.destroy();
+      Reflect.set(globalThis, imagesKey, priorImages);
       globalThis.fetch = originalFetch;
       console.error = originalError;
       console.warn = originalWarn;
@@ -592,7 +725,7 @@ test("scheduled content is announced only by the native due-publication action",
   assert.equal((await host.record(post.id))?.status, "shared");
 });
 
-test("announcements reuse native and preserved legacy URLs, external destinations, Unicode facets and bounded presentation text", async (t) => {
+test("announcements reuse native and preserved legacy URLs, external destinations and bounded Unicode text", async (t) => {
   const host = await nativeHost();
   t.after(() => host.dispose());
   await host.start();
@@ -629,17 +762,13 @@ test("announcements reuse native and preserved legacy URLs, external destination
     assert.equal(TID.is(delivery.rkey), true);
     const payload = delivery.payload;
     lexicons.assertValidRecord("app.bsky.feed.post", payload);
-    const facet = payload.facets![0];
-    const feature = facet.features[0];
-    assert.ok("uri" in feature);
-    const url = feature.uri;
+    assert.equal(payload.facets, undefined);
+    assert.match(payload.text, /^Check out my new post: /);
+    assert.equal(payload.text.includes("https://"), false);
+    const url = (payload.embed as { external: { uri: string } }).external.uri;
     assert.equal(
-      new TextDecoder().decode(
-        new TextEncoder()
-          .encode(payload.text)
-          .slice(facet.index.byteStart, facet.index.byteEnd),
-      ),
-      url,
+      (payload.embed as { external: { thumb?: unknown } }).external.thumb,
+      undefined,
     );
     if (destination) assert.equal(url, destination);
     else
@@ -661,7 +790,276 @@ test("announcements reuse native and preserved legacy URLs, external destination
   }
 });
 
-test("invalid or overlong destinations remain unsent without following article URLs", async (t) => {
+test("announcement text includes the excerpt, handles missing excerpts and truncates Unicode safely", () => {
+  const make = (title: string, excerpt?: string) =>
+    announcement(
+      {
+        id: "fixture",
+        slug: "fixture",
+        publishedAt: "2026-11-15T12:00:00Z",
+        data: { title, excerpt },
+      },
+      "2026-11-15T12:00:00Z",
+    );
+  assert.equal(
+    make("A title", "An excerpt").text,
+    "Check out my new post: A title\n\nAn excerpt",
+  );
+  assert.equal(make("A title").text, "Check out my new post: A title");
+  assert.equal(make("A title", "  ").text, "Check out my new post: A title");
+  for (const record of [
+    make("A title", "🧑🏽‍💻é日本語".repeat(400)),
+    make("🧑🏽‍💻".repeat(400), "An excerpt"),
+  ]) {
+    lexicons.assertValidRecord("app.bsky.feed.post", record);
+    assert.ok(
+      [
+        ...new Intl.Segmenter("en", { granularity: "grapheme" }).segment(
+          record.text,
+        ),
+      ].length <= 300,
+    );
+    assert.ok(new TextEncoder().encode(record.text).length <= 3000);
+  }
+  assert.ok(make("A title", "A long excerpt ".repeat(100)).text.endsWith("…"));
+});
+
+test("only the selected featured image is uploaded and frozen before creating a post", async (t) => {
+  const host = await nativeHost();
+  t.after(() => host.dispose());
+  await host.start();
+  await host.settings();
+  const bytes = new Uint8Array([255, 216, 255, 217]);
+  const image = await host.image(bytes);
+  const post = await host.fixture({
+    featured_image: {
+      id: image.id,
+      src: "https://untrusted.example/avatar.jpeg",
+    },
+  });
+  host.createReply = async ({ body }) => {
+    assert.deepEqual((await host.record(post.id))?.payload, body.record);
+    throw new Error("Lost create response");
+  };
+  await host.publish(post.id);
+  const original = await host.record(post.id);
+  assert.equal(
+    original?.status,
+    "uncertain",
+    JSON.stringify({ original, requests: host.requests, logs: host.logs }),
+  );
+  const upload = host.requests.find((request) => request.url === UPLOAD_URL)!;
+  assert.deepEqual(upload.body.bytes, [...bytes]);
+  assert.deepEqual(host.transforms, []);
+  assert.equal(upload.headers.get("Authorization"), `Bearer ${TOKEN}`);
+  assert.equal(upload.headers.get("Content-Type"), "image/jpeg");
+  const embed = original?.payload?.embed as { external: { thumb: unknown } };
+  assert.ok(embed.external.thumb);
+  // An uncertain retry reconciles the identical thumbnail without uploading again.
+  await host.restart();
+  host.getReply = () =>
+    Response.json({
+      uri: `at://${DID}/app.bsky.feed.post/${original!.rkey}`,
+      value: original!.payload,
+    });
+  await host.route({
+    user: host.admin,
+    csrf: true,
+    input: { type: "block_action", action_id: "send", value: post.id },
+  });
+  assert.equal((await host.record(post.id))?.status, "shared");
+  assert.deepEqual((await host.record(post.id))?.payload, original?.payload);
+  assert.equal(
+    host.requests.filter((request) => request.url === UPLOAD_URL).length,
+    1,
+  );
+});
+
+test("large featured images and other formats are transformed before upload", async (t) => {
+  const host = await nativeHost();
+  t.after(() => host.dispose());
+  await host.start();
+  await host.settings();
+  for (const [mimeType, size] of [
+    ["image/jpeg", 1000001],
+    ["image/webp", 10],
+  ] as const) {
+    const bytes = new Uint8Array(size).fill(42);
+    const image = await host.image(bytes, mimeType);
+    const post = await host.fixture({ featured_image: { id: image.id } });
+    await host.publish(post.id);
+    assert.equal((await host.record(post.id))?.status, "shared");
+    const call = host.transforms.at(-1)!;
+    assert.deepEqual(call.bytes, bytes);
+    assert.deepEqual(call.transform, {
+      width: 1200,
+      height: 1200,
+      fit: "scale-down",
+    });
+    assert.deepEqual(call.output, {
+      format: "image/jpeg",
+      quality: 80,
+      anim: false,
+      background: "#ffffff",
+    });
+    const upload = host.requests.findLast(
+      (request) => request.url === UPLOAD_URL,
+    )!;
+    assert.equal(upload.headers.get("Content-Type"), "image/jpeg");
+    assert.deepEqual(upload.body.bytes, [255, 216, 255, 217]);
+  }
+});
+
+test("an oversized transform is cancelled and retried once from the original", async (t) => {
+  const host = await nativeHost();
+  t.after(() => host.dispose());
+  await host.start();
+  await host.settings();
+  let cancelled = false;
+  host.transformReply = () =>
+    host.transforms.length === 1
+      ? new Response(
+          new ReadableStream({
+            start(controller) {
+              controller.enqueue(new Uint8Array(1000001));
+            },
+            cancel() {
+              cancelled = true;
+            },
+          }),
+          { headers: { "Content-Type": "image/jpeg" } },
+        )
+      : new Response(new Uint8Array([1, 2, 3]), {
+          headers: { "Content-Type": "image/jpeg" },
+        });
+  const source = new Uint8Array(1000001).fill(42);
+  const image = await host.image(source);
+  const post = await host.fixture({ featured_image: { id: image.id } });
+  await host.publish(post.id);
+  assert.equal((await host.record(post.id))?.status, "shared");
+  assert.equal(cancelled, true);
+  assert.equal(host.transforms.length, 2);
+  assert.deepEqual(host.transforms[1].bytes, source);
+  assert.deepEqual(host.transforms[1].transform, {
+    width: 800,
+    height: 800,
+    fit: "scale-down",
+  });
+  assert.equal(host.transforms[1].output.quality, 65);
+});
+
+test("transform failures and persistently oversized results never upload or create a post", async (t) => {
+  const host = await nativeHost();
+  t.after(() => host.dispose());
+  await host.start();
+  await host.settings();
+  const image = await host.image(new Uint8Array(1000001));
+  for (const reply of [
+    () => {
+      throw new Error("Images unavailable");
+    },
+    () => new Response(null, { status: 503 }),
+    () =>
+      new Response(new Uint8Array([1]), {
+        headers: { "Content-Type": "text/plain" },
+      }),
+    () => new Response(null, { headers: { "Content-Type": "image/jpeg" } }),
+    () =>
+      new Response(new Uint8Array(1000001), {
+        headers: { "Content-Type": "image/jpeg" },
+      }),
+  ]) {
+    host.transformReply = reply;
+    const before = host.transforms.length;
+    const post = await host.fixture({ featured_image: { id: image.id } });
+    await host.publish(post.id);
+    assert.equal(
+      (await host.record(post.id))?.code,
+      "featured_image_unavailable",
+    );
+    assert.ok(host.transforms.length - before <= 2);
+  }
+  assert.equal(
+    host.requests.some(
+      (request) => request.url === UPLOAD_URL || request.url === CREATE_URL,
+    ),
+    false,
+  );
+});
+
+test("a missing Images binding blocks only images requiring transformation", async (t) => {
+  const host = await nativeHost();
+  t.after(() => host.dispose());
+  await host.start();
+  await host.settings();
+  host.imagesAvailable = false;
+  const large = await host.image(new Uint8Array(1000001));
+  const blocked = await host.fixture({ featured_image: { id: large.id } });
+  await host.publish(blocked.id);
+  assert.equal(
+    (await host.record(blocked.id))?.code,
+    "featured_image_unavailable",
+  );
+  const small = await host.image();
+  const unchanged = await host.fixture({ featured_image: { id: small.id } });
+  await host.publish(unchanged.id);
+  assert.equal((await host.record(unchanged.id))?.status, "shared");
+  const noImage = await host.fixture();
+  await host.publish(noImage.id);
+  assert.equal((await host.record(noImage.id))?.status, "shared");
+  assert.deepEqual(host.transforms, []);
+});
+
+test("missing, over-limit or non-image featured assets stop delivery without an image fallback", async (t) => {
+  const host = await nativeHost();
+  t.after(() => host.dispose());
+  await host.start();
+  await host.settings();
+  const large = await host.image(new Uint8Array(16 * 1024 * 1024 + 1));
+  const text = await host.image(new Uint8Array([1]), "text/plain");
+  for (const id of ["missing-asset", large.id, text.id]) {
+    const post = await host.fixture({ featured_image: { id } });
+    await host.publish(post.id);
+    assert.equal(
+      (await host.record(post.id))?.code,
+      "featured_image_unavailable",
+    );
+  }
+  assert.equal(
+    host.requests.some(
+      (request) => request.url === UPLOAD_URL || request.url === CREATE_URL,
+    ),
+    false,
+  );
+});
+
+test("rejected or malformed image uploads remain retryable without creating a text-only post", async (t) => {
+  const host = await nativeHost();
+  t.after(() => host.dispose());
+  await host.start();
+  await host.settings();
+  const image = await host.image();
+  for (const reply of [
+    () => new Response(null, { status: 503 }),
+    () => Response.json({ blob: { unexpected: true } }),
+  ]) {
+    host.uploadReply = reply;
+    const post = await host.fixture({ featured_image: { id: image.id } });
+    await host.publish(post.id);
+    assert.equal((await host.record(post.id))?.status, "failed");
+    assert.equal(
+      (await host.record(post.id))?.code,
+      "featured_image_unavailable",
+    );
+    assert.equal((await host.record(post.id))?.accountDid, null);
+  }
+  assert.equal(
+    host.requests.some((request) => request.url === CREATE_URL),
+    false,
+  );
+});
+
+test("invalid destinations remain unsent without following article URLs", async (t) => {
   const host = await nativeHost();
   t.after(() => host.dispose());
   await host.start();
@@ -670,7 +1068,6 @@ test("invalid or overlong destinations remain unsent without following article U
     { redirect_link: "javascript:alert(1)" },
     { redirect_link: "https://user:password@example.com/article" },
     { redirect_link: "not a URL" },
-    { redirect_link: `https://example.com/${"x".repeat(400)}` },
     { legacy_route: "2020/13/invalid" },
   ]) {
     const post = await host.fixture(data);

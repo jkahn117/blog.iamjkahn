@@ -20,6 +20,7 @@ export default defineConfig({
       PUBLIC_BLUESKY_HANDLE: bindings.text("iamjkahn.com"),
       CDN: bindings.text("cloudflare"),
       ASSETS: bindings.assets(),
+      IMAGES: bindings.images({ dev: { remote: false } }),
       DB: bindings.d1({
         id: "1f4a3f2d-602d-4816-bc60-add015ddc7f4",
         name: "iamjkahn-cms",

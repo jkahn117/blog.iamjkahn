@@ -8,7 +8,7 @@ export function createPlugin() {
     id: "bluesky-share",
     displayName: "Bluesky announcements",
     version: "1.0.0",
-    capabilities: ["content:read", "network:request"],
+    capabilities: ["content:read", "network:request", "media:bytes:read"],
     allowedHosts: ["bsky.social"],
     storage: {
       deliveries: { indexes: ["status", "createdAt", "attemptId"] },
@@ -18,7 +18,7 @@ export function createPlugin() {
         await initialize(ctx);
       },
       "content:afterPublish": {
-        timeout: 25000,
+        timeout: 35000,
         errorPolicy: "continue",
         handler: async ({ content, collection }, ctx) => {
           await afterPublish(content, collection, ctx);
