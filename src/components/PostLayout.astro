@@ -1,14 +1,19 @@
 ---
+import { Image } from "emdash/ui";
+
 import Container from "@/components/Container.astro";
 import Prose from "@/components/Prose.astro";
 import { formatDate } from "@/lib/formatDate.ts";
 
+import type { Post } from "../../emdash-env";
+
 interface Props {
   title: string;
   date: Date;
+  featuredImage?: Post["featured_image"];
 }
 
-const { title, date } = Astro.props;
+const { title, date, featuredImage } = Astro.props;
 ---
 
 <Container class="mt-16 lg:mt-32">
@@ -65,6 +70,13 @@ const { title, date } = Astro.props;
             <span class="ml-3">{formatDate(date)}</span>
           </time>
         </header>
+        {featuredImage && (
+          <Image
+            image={featuredImage}
+            class="mt-8 h-auto w-full rounded-3xl"
+            priority
+          />
+        )}
         <Prose class="mt-8">
           <slot />
         </Prose>

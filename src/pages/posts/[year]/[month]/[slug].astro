@@ -61,7 +61,11 @@ const date = !notFound && post ? getPostDate(post.data) : null;
     author={post.data.byline?.displayName}
     seoEntry={post}
   >
-    <PostLayout title={post.data.title} date={date}>
+    <PostLayout
+      title={post.data.title}
+      date={date}
+      featuredImage={post.data.featured_image}
+    >
       <PortableText value={post.data.content ?? []} />
     </PostLayout>
   </Base>
