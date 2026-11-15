@@ -9,7 +9,6 @@ import {
 import clsx from "clsx";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
-import avatarImage from "@/images/avatar.jpg";
 import { getNextThemePreference, type ThemePreference } from "@/lib/theme";
 
 function CloseIcon(props: React.SVGProps<SVGSVGElement>) {
@@ -291,30 +290,32 @@ function AvatarContainer({
 function Avatar({
   large = false,
   className,
+  children,
   ...props
 }: { large?: boolean } & React.ComponentPropsWithoutRef<"a">) {
   return (
     <a
       href="/"
       aria-label="Home"
-      className={clsx(className, "pointer-events-auto")}
+      className={clsx(
+        className,
+        "pointer-events-auto block rounded-full bg-zinc-100 dark:bg-zinc-800",
+        large ? "h-16 w-16" : "h-9 w-9",
+      )}
       {...props}
     >
-      <img
-        src={avatarImage.src}
-        alt=""
-        width={large ? 64 : 36}
-        height={large ? 64 : 36}
-        className={clsx(
-          "rounded-full bg-zinc-100 object-cover dark:bg-zinc-800",
-          large ? "h-16 w-16" : "h-9 w-9",
-        )}
-      />
+      {children}
     </a>
   );
 }
 
-export function Header({ currentPath = "/" }: { currentPath?: string }) {
+export function Header({
+  currentPath = "/",
+  avatar,
+}: {
+  currentPath?: string;
+  avatar: ReactNode;
+}) {
   const isHomePage = currentPath === "/";
 
   const headerRef = useRef<HTMLDivElement>(null);
@@ -461,7 +462,9 @@ export function Header({ currentPath = "/" }: { currentPath?: string }) {
                           large
                           className="block h-16 w-16 origin-left"
                           style={{ transform: "var(--avatar-image-transform)" }}
-                        />
+                        >
+                          {avatar}
+                        </Avatar>
                       </div>
                     </div>
                   </div>
@@ -493,7 +496,7 @@ export function Header({ currentPath = "/" }: { currentPath?: string }) {
                       <div className="flex flex-1">
                         {!isHomePage && (
                           <AvatarContainer>
-                            <Avatar />
+                            <Avatar>{avatar}</Avatar>
                           </AvatarContainer>
                         )}
                       </div>
