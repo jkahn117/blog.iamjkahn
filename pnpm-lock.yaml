@@ -26,6 +26,12 @@ importers:
       '@atproto/api':
         specifier: ^0.18.21
         version: 0.18.21
+      '@atproto/common-web':
+        specifier: 0.4.21
+        version: 0.4.21
+      '@emdash-cms/blocks':
+        specifier: 1.5.0
+        version: 1.5.0(@date-fns/tz@1.5.0)(@types/react@19.2.17)(date-fns@3.6.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@4.6.7)
       '@emdash-cms/cloudflare':
         specifier: ^1.5.0
         version: 1.5.0(a566fabc584f4a58934729d2b273cc20)

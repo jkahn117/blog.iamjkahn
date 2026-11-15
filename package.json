@@ -24,6 +24,8 @@
     "@astrojs/rss": "^4.0.19",
     "@astrojs/sitemap": "^3.7.3",
     "@atproto/api": "^0.18.21",
+    "@atproto/common-web": "0.4.21",
+    "@emdash-cms/blocks": "1.5.0",
     "@emdash-cms/cloudflare": "^1.5.0",
     "@headlessui/react": "^2.2.10",
     "@heroicons/react": "^2.2.0",

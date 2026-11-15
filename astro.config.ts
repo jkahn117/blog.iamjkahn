@@ -63,6 +63,13 @@ export default defineConfig({
     emdash({
       plugins: [
         {
+          id: "bluesky-share",
+          version: "1.0.0",
+          entrypoint: fileURLToPath(
+            new URL("./src/plugins/bluesky-share/index.ts", import.meta.url),
+          ),
+        },
+        {
           id: "migration-fields",
           version: "1.0.0",
           entrypoint: fileURLToPath(

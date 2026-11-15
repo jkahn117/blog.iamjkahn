@@ -5,5 +5,9 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["./**/*.ts", "../src/lib/posts.ts"]
+  "include": [
+    "./**/*.ts",
+    "../src/lib/posts.ts",
+    "../worker-configuration.d.ts"
+  ]
 }
