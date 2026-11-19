@@ -11,9 +11,16 @@ interface Props {
   title: string;
   date: Date;
   featuredImage?: Post["featured_image"];
+  terms?: Post["terms"];
 }
 
-const { title, date, featuredImage } = Astro.props;
+const { title, date, featuredImage, terms } = Astro.props;
+const category = terms?.category?.[0];
+const tags = terms?.tag ?? [];
+const topics = tags
+  .filter((tag) => !tag.slug.startsWith("era-"))
+  .toSorted((a, b) => a.label.localeCompare(b.label));
+const eras = tags.filter((tag) => tag.slug.startsWith("era-"));
 ---
 
 <Container class="mt-16 lg:mt-32">
@@ -62,13 +69,26 @@ const { title, date, featuredImage } = Astro.props;
           <h1 class="mt-6 text-4xl font-bold tracking-tight text-zinc-800 sm:text-5xl dark:text-zinc-100">
             {title}
           </h1>
-          <time
-            datetime={date.toISOString()}
-            class="order-first flex items-center text-base text-zinc-400 dark:text-zinc-500"
-          >
-            <span class="h-4 w-0.5 rounded-full bg-zinc-200 dark:bg-zinc-500"></span>
-            <span class="ml-3">{formatDate(date)}</span>
-          </time>
+          <div class="order-first flex flex-wrap items-center gap-x-3 gap-y-2 text-base">
+            <time
+              datetime={date.toISOString()}
+              class="text-zinc-400 dark:text-zinc-500"
+            >
+              {formatDate(date)}
+            </time>
+            {category && (
+              <span class="inline-flex items-center gap-3">
+                <span
+                  aria-hidden="true"
+                  class="h-4 w-0.5 shrink-0 rounded-full bg-zinc-400 dark:bg-zinc-500"
+                />
+                <span class="text-zinc-400 dark:text-zinc-500">
+                  <span class="sr-only">Category: </span>
+                  {category.label}
+                </span>
+              </span>
+            )}
+          </div>
         </header>
         {featuredImage && (
           <Image
@@ -80,6 +100,31 @@ const { title, date, featuredImage } = Astro.props;
         <Prose class="mt-8">
           <slot />
         </Prose>
+        {(topics.length > 0 || eras.length > 0) && (
+          <footer class="mt-10 border-t border-zinc-100 pt-6 dark:border-zinc-800">
+            {topics.length > 0 && (
+              <ul aria-label="Topics" class="flex flex-wrap gap-2">
+                {topics.map((tag) => (
+                  <li class="rounded-full border border-zinc-200 px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:border-zinc-700 dark:text-zinc-300">
+                    {tag.label}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {eras.length > 0 && (
+              <div class:list={[{ "mt-4": topics.length > 0 }]}>
+                <p class="text-sm text-zinc-500 dark:text-zinc-400">
+                  From the archives tour: the{" "}
+                  {eras.map((era) => era.label).join(", ")} era.
+                </p>
+                <p class="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
+                  An era groups posts by when I wrote them, not what they're
+                  about.
+                </p>
+              </div>
+            )}
+          </footer>
+        )}
       </article>
     </div>
   </div>
