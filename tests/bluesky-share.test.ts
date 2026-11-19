@@ -1289,6 +1289,278 @@ test("an accepted create with a lost response stays uncertain with frozen identi
     assert.equal(serialized.includes(secret), false);
 });
 
+test("Re-share checks deletion and rebuilds from the current published content and featured image", async (t) => {
+  const host = await nativeHost();
+  t.after(() => host.dispose());
+  await host.start();
+  await host.settings();
+  const post = await host.fixture();
+  await host.publish(post.id);
+  const original = (await host.record(post.id))!;
+  const page = await host.route({ user: host.admin, csrf: true });
+  const body = (await page.json()) as { data: BlockResponse };
+  assert.equal(validateBlockResponse(body.data, {}).valid, true);
+  const table = body.data.blocks.find((block) => block.type === "table");
+  assert.ok(table?.type === "table");
+  const button = table.rows[0].reshare as ButtonElement;
+  assert.equal(button.label, "Re-share");
+  assert.equal(button.confirm?.confirm, "Check and re-share");
+  const input = {
+    type: "block_action",
+    action_id: button.action_id,
+    value: button.value,
+  };
+
+  const image = await host.image();
+  await host.runtime.handleContentUpdate("posts", post.id, {
+    data: {
+      title: "Updated title",
+      excerpt: "Updated excerpt",
+      featured_image: { id: image.id },
+    },
+  });
+  await host.publish(post.id);
+  assert.deepEqual(await host.record(post.id), original);
+  const response = await host.route({ user: host.admin, csrf: true, input });
+  assert.match(await response.text(), /Re-share finished/);
+  const replacement = (await host.record(post.id))!;
+  assert.equal(replacement.status, "shared");
+  assert.notEqual(replacement.rkey, original.rkey);
+  assert.equal(replacement.replacesRkey, original.rkey);
+  assert.equal(replacement.createdAt, original.createdAt);
+  assert.equal(replacement.accountDid, original.accountDid);
+  assert.equal(replacement.title, "Updated title");
+  assert.equal(
+    replacement.payload?.text,
+    "Check out my new post: Updated title\n\nUpdated excerpt",
+  );
+  assert.ok(replacement.payload);
+  assert.ok(
+    (replacement.payload.embed as { external: { thumb: unknown } }).external
+      .thumb,
+  );
+  assert.equal(replacement.featuredImageId, image.id);
+  const lookups = host.requests.filter((request) =>
+    request.url.startsWith(GET_URL),
+  );
+  assert.deepEqual(
+    lookups.map((request) => request.body.rkey),
+    [original.rkey, replacement.rkey],
+  );
+  assert.equal(
+    host.requests.filter((request) => request.url === CREATE_URL).length,
+    2,
+  );
+  assert.equal(
+    host.requests.filter((request) => request.url === UPLOAD_URL).length,
+    1,
+  );
+});
+
+test("Re-share leaves shared delivery unchanged unless Bluesky explicitly confirms deletion", async (t) => {
+  const host = await nativeHost();
+  t.after(() => host.dispose());
+  await host.start();
+  await host.settings();
+  const post = await host.fixture();
+  await host.publish(post.id);
+  const original = (await host.record(post.id))!;
+  const input = {
+    type: "block_action",
+    action_id: "reshare",
+    value: { sourceId: post.id, rkey: original.rkey, unresolved: false },
+  };
+  for (const reply of [
+    () => Response.json({ uri: original.uri, value: original.payload }),
+    () => Response.json({ error: "RecordNotFound" }, { status: 404 }),
+    () => Response.json({ error: "RecordNotFound" }, { status: 503 }),
+    () => Response.json({ error: "AuthRequired" }, { status: 401 }),
+    () => new Response("Malformed reply", { status: 400 }),
+    () => {
+      throw new Error(`Network failure ${TOKEN}`);
+    },
+  ]) {
+    host.getReply = reply;
+    await host.route({ user: host.admin, csrf: true, input });
+    assert.deepEqual(await host.record(post.id), original);
+  }
+  assert.equal(
+    host.requests.filter((request) => request.url === CREATE_URL).length,
+    1,
+  );
+  assert.equal(
+    host.requests.some((request) => request.url === UPLOAD_URL),
+    false,
+  );
+  assert.equal(JSON.stringify(host.logs).includes(TOKEN), false);
+});
+
+test("Re-share preserves the original on configuration, account, content or image preparation failures", async (t) => {
+  const host = await nativeHost();
+  t.after(() => host.dispose());
+  await host.start();
+  await host.settings();
+  const post = await host.fixture();
+  await host.publish(post.id);
+  const original = (await host.record(post.id))!;
+  const input = {
+    type: "block_action",
+    action_id: "reshare",
+    value: { sourceId: post.id, rkey: original.rkey, unresolved: false },
+  };
+  await host.settings({ enabled: false });
+  const before = host.requests.length;
+  await host.route({ user: host.admin, csrf: true, input });
+  assert.equal(host.requests.length, before);
+  assert.deepEqual(await host.record(post.id), original);
+  await host.settings();
+  host.did = OTHER_DID;
+  await host.route({ user: host.admin, csrf: true, input });
+  assert.deepEqual(await host.record(post.id), original);
+  host.did = DID;
+  await host.runtime.handleContentUpdate("posts", post.id, {
+    data: { redirect_link: "javascript:alert(1)" },
+  });
+  await host.publish(post.id);
+  await host.route({ user: host.admin, csrf: true, input });
+  assert.deepEqual(await host.record(post.id), original);
+  await host.runtime.handleContentUpdate("posts", post.id, {
+    data: { redirect_link: "", featured_image: { id: "missing-image" } },
+  });
+  await host.publish(post.id);
+  await host.route({ user: host.admin, csrf: true, input });
+  assert.deepEqual(await host.record(post.id), original);
+  await host.runtime.handleContentUnpublish("posts", post.id);
+  await host.route({ user: host.admin, csrf: true, input });
+  assert.deepEqual(await host.record(post.id), original);
+  assert.equal(
+    host.requests.filter((request) => request.url === CREATE_URL).length,
+    1,
+  );
+});
+
+test("overlapping Re-share requests and stale completed actions cannot create two replacements", async (t) => {
+  const host = await nativeHost();
+  t.after(() => host.dispose());
+  await host.start();
+  await host.settings();
+  const post = await host.fixture();
+  await host.publish(post.id);
+  const original = (await host.record(post.id))!;
+  const input = {
+    type: "block_action",
+    action_id: "reshare",
+    value: { sourceId: post.id, rkey: original.rkey, unresolved: false },
+  };
+  const entered = Promise.withResolvers<void>();
+  const release = Promise.withResolvers<Response>();
+  let oldLookups = 0;
+  host.getReply = ({ body }) => {
+    if (body.rkey === original.rkey && ++oldLookups === 1) {
+      entered.resolve();
+      return release.promise;
+    }
+    return Response.json({ error: "RecordNotFound" }, { status: 400 });
+  };
+  const first = host.route({ user: host.admin, csrf: true, input });
+  await entered.promise;
+  await host.route({ user: host.admin, csrf: true, input });
+  release.resolve(Response.json({ error: "RecordNotFound" }, { status: 400 }));
+  await first;
+  const replacement = (await host.record(post.id))!;
+  assert.equal(replacement.status, "shared");
+  assert.notEqual(replacement.rkey, original.rkey);
+  const before = host.requests.length;
+  await host.route({ user: host.admin, csrf: true, input });
+  assert.equal(host.requests.length, before);
+  assert.deepEqual(await host.record(post.id), replacement);
+  assert.equal(
+    host.requests.filter((request) => request.url === CREATE_URL).length,
+    2,
+  );
+});
+
+test("an interrupted Re-share recovers its frozen replacement after restart", async (t) => {
+  const host = await nativeHost();
+  t.after(() => host.dispose());
+  await host.start();
+  await host.settings();
+  const post = await host.fixture();
+  await host.publish(post.id);
+  const original = (await host.record(post.id))!;
+  host.createReply = () => {
+    throw new Error("Create response lost");
+  };
+  const input = {
+    type: "block_action",
+    action_id: "reshare",
+    value: { sourceId: post.id, rkey: original.rkey, unresolved: false },
+  };
+  await host.route({ user: host.admin, csrf: true, input });
+  const replacement = (await host.record(post.id))!;
+  assert.equal(replacement.status, "uncertain");
+  assert.notEqual(replacement.rkey, original.rkey);
+  await host.restart();
+  host.getReply = () =>
+    Response.json({
+      uri: `at://${DID}/app.bsky.feed.post/${replacement.rkey}`,
+      value: replacement.payload,
+    });
+  await host.route({
+    user: host.admin,
+    csrf: true,
+    input: { type: "block_action", action_id: "send", value: post.id },
+  });
+  assert.equal((await host.record(post.id))?.status, "shared");
+  assert.equal((await host.record(post.id))?.rkey, replacement.rkey);
+  assert.deepEqual((await host.record(post.id))?.payload, replacement.payload);
+  assert.equal(
+    host.requests.filter((request) => request.url === CREATE_URL).length,
+    2,
+  );
+});
+
+test("Re-share requires authorization, CSRF and the displayed shared record key", async (t) => {
+  const host = await nativeHost();
+  t.after(() => host.dispose());
+  await host.start();
+  await host.settings();
+  const post = await host.fixture();
+  await host.publish(post.id);
+  const original = (await host.record(post.id))!;
+  const input = {
+    type: "block_action",
+    action_id: "reshare",
+    value: { sourceId: post.id, rkey: original.rkey, unresolved: false },
+  };
+  const before = host.requests.length;
+  assert.equal((await host.route({ input })).status, 401);
+  assert.equal(
+    (await host.route({ user: host.subscriber, csrf: true, input })).status,
+    403,
+  );
+  assert.equal((await host.route({ user: host.admin, input })).status, 403);
+  for (const value of [
+    post.id,
+    { sourceId: post.id, unresolved: false },
+    { ...input.value, rkey: "" },
+  ]) {
+    const response = await host.route({
+      user: host.admin,
+      csrf: true,
+      input: { ...input, value },
+    });
+    assert.match(await response.text(), /Invalid announcement action/);
+  }
+  await host.route({
+    user: host.admin,
+    csrf: true,
+    input: { ...input, value: { ...input.value, rkey: "stale-key" } },
+  });
+  assert.equal(host.requests.length, before);
+  assert.deepEqual(await host.record(post.id), original);
+});
+
 test("manual Send recovers skipped records, serializes clicks and rechecks publication", async (t) => {
   const host = await nativeHost();
   t.after(() => host.dispose());

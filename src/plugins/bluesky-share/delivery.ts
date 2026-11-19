@@ -18,6 +18,7 @@ export type Delivery = {
   accountDid: string | null;
   payload: ReturnType<typeof announcement> | null;
   featuredImageId?: string;
+  replacesRkey?: string;
   status: "pending" | "shared" | "skipped" | "failed" | "uncertain";
   phase: "preparing" | "creating" | "finished";
   code: string | null;
@@ -96,6 +97,89 @@ export async function recover(
     return "Another request claimed this announcement. Refresh its status.";
   await sendAttempt(record, claim.revision, ctx);
   return "Recovery finished. See the delivery status below.";
+}
+
+export async function reshare(
+  sourceId: string,
+  expectedRkey: string,
+  ctx: PluginContext,
+): Promise<string> {
+  const store = deliveries(ctx);
+  const current = await store.getVersioned(sourceId);
+  if (
+    !current ||
+    current.value.status !== "shared" ||
+    current.value.rkey !== expectedRkey
+  )
+    return "This announcement changed. Refresh before re-sharing.";
+  const previous = current.value;
+  const source = await ctx.content!.get("posts", sourceId);
+  if (!source || source.status !== "published")
+    return "The source must still be published before re-sharing.";
+  const authentication = await authenticate(ctx);
+  if ("code" in authentication)
+    return `Cannot re-share: ${authentication.code}. The original delivery is unchanged.`;
+  const { session } = authentication;
+  const account = await ctx.kv.get<{ did: string }>(ACCOUNT_KEY);
+  if (account?.did !== session.did || previous.accountDid !== session.did)
+    return "The Bluesky account changed. The original delivery is unchanged.";
+  try {
+    const { response, remote } = await lookupRecord(
+      ctx,
+      session,
+      previous.rkey,
+    );
+    if (response.ok)
+      return "The previous Bluesky post still exists. Delete it before re-sharing.";
+    if (
+      response.status !== 400 ||
+      !object(remote) ||
+      remote.error !== "RecordNotFound"
+    )
+      return "Could not confirm deletion. The original delivery is unchanged.";
+  } catch {
+    return "Could not confirm deletion. The original delivery is unchanged.";
+  }
+
+  const now = new Date().toISOString();
+  let payload: ReturnType<typeof announcement>;
+  let imageId: string | undefined;
+  try {
+    payload = announcement({ ...source }, now);
+    imageId = featuredImageId({ ...source });
+    if (imageId) {
+      const thumb = await uploadFeaturedImage(imageId, session.accessJwt, ctx);
+      if (!AppBskyEmbedExternal.isMain(payload.embed))
+        throw new Error("INVALID_EMBED");
+      payload.embed.external.thumb = thumb;
+    }
+  } catch {
+    return "Could not prepare the current announcement or featured image. The original delivery is unchanged.";
+  }
+  const record: Delivery = {
+    ...previous,
+    title:
+      object(source.data) && typeof source.data.title === "string"
+        ? source.data.title.slice(0, 300)
+        : previous.title,
+    updatedAt: new Date().toISOString(),
+    attemptId: crypto.randomUUID(),
+    rkey: TID.nextStr(),
+    replacesRkey: previous.rkey,
+    payload,
+    featuredImageId: imageId,
+    status: "pending",
+    phase: "preparing",
+    code: null,
+    uri: null,
+  };
+  // Claim only after deletion and preparation succeed. The revision and the
+  // displayed key fence overlapping clicks, including replays after completion.
+  const claim = await store.compareAndSet(sourceId, current.revision, record);
+  if (!claim.applied)
+    return "Another request changed this announcement. Refresh its status.";
+  await sendAttempt(record, claim.revision, ctx, session);
+  return "Re-share finished. See the delivery status below.";
 }
 
 export function deliveries(ctx: PluginContext): StorageCollection<Delivery> {
@@ -226,10 +310,98 @@ async function deliverInitial(
   await sendAttempt(record, claim.revision, ctx);
 }
 
+type Session = { did: string; accessJwt: string };
+type Authentication =
+  | { session: Session }
+  | { status: "skipped" | "failed"; code: string };
+
+async function authenticate(ctx: PluginContext): Promise<Authentication> {
+  let identifier: unknown;
+  let password: unknown;
+  try {
+    if ((await ctx.settings.get("enabled")) !== true) {
+      return { status: "skipped", code: "delivery_disabled" };
+    }
+    const { env } = await import("cloudflare:workers");
+    const configuredHandle = await ctx.settings.get("identifier");
+    const configuredPassword = await ctx.settings.get("appPassword");
+    identifier =
+      typeof configuredHandle === "string" && configuredHandle.trim()
+        ? configuredHandle.trim()
+        : env.PUBLIC_BLUESKY_HANDLE;
+    password =
+      typeof configuredPassword === "string" && configuredPassword.trim()
+        ? configuredPassword
+        : env.BLUESKY_APP_PASSWORD;
+    if (
+      typeof identifier !== "string" ||
+      !identifier.trim() ||
+      typeof password !== "string" ||
+      !password.trim()
+    ) {
+      throw new Error("CREDENTIALS_UNAVAILABLE");
+    }
+  } catch {
+    return { status: "skipped", code: "credentials_unavailable" };
+  }
+
+  let session: unknown;
+  try {
+    const response = await rpc(ctx, SESSION_URL, { identifier, password });
+    if (!response.ok) {
+      return { status: "failed", code: "authentication_rejected" };
+    }
+    session = await response.json();
+    if (
+      !object(session) ||
+      typeof session.did !== "string" ||
+      !/^did:(plc:[a-z2-7]{24}|web:[a-zA-Z0-9._:%-]+)$/.test(session.did) ||
+      typeof session.accessJwt !== "string" ||
+      !session.accessJwt ||
+      /[\r\n]/.test(session.accessJwt)
+    ) {
+      return { status: "failed", code: "invalid_session" };
+    }
+  } catch {
+    return { status: "failed", code: "authentication_unavailable" };
+  }
+  // Narrow again across the asynchronous boundary without retaining credentials in state.
+  if (
+    !object(session) ||
+    typeof session.did !== "string" ||
+    typeof session.accessJwt !== "string"
+  )
+    return { status: "failed", code: "invalid_session" };
+
+  return { session: { did: session.did, accessJwt: session.accessJwt } };
+}
+
+async function lookupRecord(
+  ctx: PluginContext,
+  session: Session,
+  rkey: string,
+) {
+  const url = new URL(GET_URL);
+  url.search = new URLSearchParams({
+    repo: session.did,
+    collection: "app.bsky.feed.post",
+    rkey,
+  }).toString();
+  const response = await ctx.http!.fetch(url.href, {
+    method: "GET",
+    redirect: "error",
+    signal: AbortSignal.timeout(8000),
+    headers: { Authorization: `Bearer ${session.accessJwt}` },
+  });
+  const remote: unknown = await response.json();
+  return { response, remote };
+}
+
 async function sendAttempt(
   record: Delivery,
   revision: string,
   ctx: PluginContext,
+  authenticated?: Session,
 ): Promise<void> {
   const sourceId = record.sourceId;
   const store = deliveries(ctx);
@@ -261,67 +433,14 @@ async function sendAttempt(
     await finish("skipped", "invalid_announcement");
     return;
   }
-  let identifier: unknown;
-  let password: unknown;
-  try {
-    if ((await ctx.settings.get("enabled")) !== true) {
-      await finish("skipped", "delivery_disabled");
-      return;
-    }
-    const { env } = await import("cloudflare:workers");
-    const configuredHandle = await ctx.settings.get("identifier");
-    const configuredPassword = await ctx.settings.get("appPassword");
-    identifier =
-      typeof configuredHandle === "string" && configuredHandle.trim()
-        ? configuredHandle.trim()
-        : env.PUBLIC_BLUESKY_HANDLE;
-    password =
-      typeof configuredPassword === "string" && configuredPassword.trim()
-        ? configuredPassword
-        : env.BLUESKY_APP_PASSWORD;
-    if (
-      typeof identifier !== "string" ||
-      !identifier.trim() ||
-      typeof password !== "string" ||
-      !password.trim()
-    ) {
-      throw new Error("CREDENTIALS_UNAVAILABLE");
-    }
-  } catch {
-    await finish("skipped", "credentials_unavailable");
+  const authentication = authenticated
+    ? { session: authenticated }
+    : await authenticate(ctx);
+  if ("code" in authentication) {
+    await finish(authentication.status, authentication.code);
     return;
   }
-
-  let session: unknown;
-  try {
-    const response = await rpc(ctx, SESSION_URL, { identifier, password });
-    if (!response.ok) {
-      await finish("failed", "authentication_rejected");
-      return;
-    }
-    session = await response.json();
-    if (
-      !object(session) ||
-      typeof session.did !== "string" ||
-      !/^did:(plc:[a-z2-7]{24}|web:[a-zA-Z0-9._:%-]+)$/.test(session.did) ||
-      typeof session.accessJwt !== "string" ||
-      !session.accessJwt ||
-      /[\r\n]/.test(session.accessJwt)
-    ) {
-      await finish("failed", "invalid_session");
-      return;
-    }
-  } catch {
-    await finish("failed", "authentication_unavailable");
-    return;
-  }
-  // Narrow again across the asynchronous boundary without retaining credentials in state.
-  if (
-    !object(session) ||
-    typeof session.did !== "string" ||
-    typeof session.accessJwt !== "string"
-  )
-    return;
+  const { session } = authentication;
   const did = session.did;
   await ctx.kv.compareAndSet(ACCOUNT_KEY, null, { did });
   const account = await ctx.kv.get<{ did: string }>(ACCOUNT_KEY);
@@ -337,19 +456,11 @@ async function sendAttempt(
   // including pending attempts interrupted before their completion was persisted.
   if (record.accountDid !== null) {
     try {
-      const url = new URL(GET_URL);
-      url.search = new URLSearchParams({
-        repo: did,
-        collection: "app.bsky.feed.post",
-        rkey: record.rkey,
-      }).toString();
-      const response = await ctx.http!.fetch(url.href, {
-        method: "GET",
-        redirect: "error",
-        signal: AbortSignal.timeout(8000),
-        headers: { Authorization: `Bearer ${session.accessJwt}` },
-      });
-      const remote: unknown = await response.json();
+      const { response, remote } = await lookupRecord(
+        ctx,
+        session,
+        record.rkey,
+      );
       if (response.ok) {
         unresolved = false;
         if (

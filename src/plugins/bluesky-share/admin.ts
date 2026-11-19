@@ -1,10 +1,10 @@
 import type { BlockResponse } from "@emdash-cms/blocks/server";
 import type { PluginRoute } from "emdash";
 
-import { deliveries, isActive, recover } from "./delivery.ts";
+import { deliveries, isActive, recover, reshare } from "./delivery.ts";
 
 type HistoryState = { unresolved: boolean; cursor?: string };
-type Interaction = HistoryState & { sourceId?: string };
+type Interaction = HistoryState & { sourceId?: string; reshareRkey?: string };
 
 function interaction(input: unknown): Interaction | null {
   if (!input || typeof input !== "object" || !("type" in input)) return null;
@@ -13,7 +13,7 @@ function interaction(input: unknown): Interaction | null {
   if (
     input.type !== "block_action" ||
     !("action_id" in input) ||
-    !["send", "history"].includes(String(input.action_id)) ||
+    !["send", "history", "reshare"].includes(String(input.action_id)) ||
     !("value" in input)
   )
     return null;
@@ -44,6 +44,16 @@ function interaction(input: unknown): Interaction | null {
     value.sourceId.length > 200
   )
     return null;
+  if (input.action_id === "reshare") {
+    if (
+      !("rkey" in value) ||
+      typeof value.rkey !== "string" ||
+      !value.rkey ||
+      value.rkey.length > 200
+    )
+      return null;
+    return { ...state, sourceId: value.sourceId, reshareRkey: value.rkey };
+  }
   return { ...state, sourceId: value.sourceId };
 }
 
@@ -69,7 +79,9 @@ export const admin: PluginRoute = {
     let message: string | undefined;
     if (parsed.sourceId) {
       try {
-        message = await recover(parsed.sourceId, ctx);
+        message = parsed.reshareRkey
+          ? await reshare(parsed.sourceId, parsed.reshareRkey, ctx)
+          : await recover(parsed.sourceId, ctx);
       } catch {
         ctx.log.error(
           "Bluesky recovery or storage failed; inspect delivery status before retrying.",
@@ -101,7 +113,7 @@ export const admin: PluginRoute = {
         { type: "header", text: "Bluesky announcements" },
         {
           type: "context",
-          text: "No automatic retries. Send uses the original announcement. Recovery checks Bluesky before sending again. Active attempts stay locked for one minute; refresh to check their status.",
+          text: "No automatic retries. Send uses the original announcement. Re-share requires deleting the previous Bluesky post and uses the current published content and featured image. Active attempts stay locked for one minute; refresh to check their status.",
         },
         {
           type: "context",
@@ -151,6 +163,7 @@ export const admin: PluginRoute = {
               format: "relative_time",
             },
             { key: "link", label: "Bluesky / recovery", format: "element" },
+            { key: "reshare", label: "Deleted post", format: "element" },
           ],
           rows: page.items.map(({ data }) => ({
             title: data.title,
@@ -160,6 +173,22 @@ export const admin: PluginRoute = {
             updatedAt: data.updatedAt,
             ...(data.status === "shared" && data.uri && data.accountDid
               ? {
+                  reshare: {
+                    type: "button",
+                    label: "Re-share",
+                    action_id: "reshare",
+                    value: {
+                      ...state,
+                      sourceId: data.sourceId,
+                      rkey: data.rkey,
+                    },
+                    confirm: {
+                      title: "Re-share deleted Bluesky post?",
+                      text: "Only continue if you deleted the previous post. Bluesky will be checked before sending a new announcement using the current published content and featured image.",
+                      confirm: "Check and re-share",
+                      deny: "Cancel",
+                    },
+                  },
                   link: {
                     type: "link",
                     label: "View post",
