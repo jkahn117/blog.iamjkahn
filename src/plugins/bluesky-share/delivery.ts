@@ -245,14 +245,13 @@ export async function afterPublish(
     return;
   try {
     const boundary = await ctx.kv.get<Boundary>(BOUNDARY_KEY);
-    // No backfill. Legacy import metadata also excludes imports made after installation.
+    // No backfill: use actual publication history, not a migrated draft's legacy date.
     if (
       !boundary ||
       boundary.historicalIds.includes(content.id) ||
       typeof content.publishedAt !== "string" ||
       !Number.isFinite(Date.parse(content.publishedAt)) ||
-      Date.parse(content.publishedAt) < Date.parse(boundary.enabledAt) ||
-      (object(content.data) && content.data.legacy_published_at)
+      Date.parse(content.publishedAt) < Date.parse(boundary.enabledAt)
     )
       return;
     await deliverInitial(content, ctx);

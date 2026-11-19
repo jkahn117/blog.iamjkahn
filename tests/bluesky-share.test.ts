@@ -690,14 +690,43 @@ test("the enablement snapshot excludes old published identities, including unpub
   assert.deepEqual(await host.boundary(), boundary);
   await host.publish(oldDraft.id);
   assert.equal((await host.record(oldDraft.id))?.status, "shared");
-  const imported = await host.fixture({
-    legacy_published_at: "2007-11-01T00:48:36.000Z",
-  });
+  const imported = await host.fixture(
+    { legacy_published_at: "2007-11-01T00:48:36.000Z" },
+    { publishedAt: "2007-11-01T00:48:36.000Z" },
+  );
   await host.publish(imported.id);
   assert.equal(await host.record(imported.id), null);
   for (const item of [old, unpublished, futureDated])
     assert.equal(await host.record(item.id), null);
   assert.equal(host.requests.filter((r) => r.url === CREATE_URL).length, 1);
+});
+
+test("a migrated draft is announced on first publication despite its old legacy date", async (t) => {
+  const host = await nativeHost();
+  t.after(() => host.dispose());
+  const post = await host.fixture({
+    legacy_published_at: "2026-09-28T05:00:00.000Z",
+  });
+  await host.start();
+  await host.settings();
+  const draft = await host.runtime.handleContentGet("posts", post.id);
+  assert.ok(draft.success);
+  assert.equal(draft.data.item.publishedAt, null);
+
+  await host.publish(post.id);
+  const delivery = await host.record(post.id);
+  assert.equal(delivery?.status, "shared");
+  const published = await host.runtime.handleContentGet("posts", post.id);
+  assert.ok(published.success);
+  assert.equal(delivery?.publishedAt, published.data.item.publishedAt);
+  assert.notEqual(delivery?.publishedAt, "2026-09-28T05:00:00.000Z");
+
+  await host.publish(post.id);
+  assert.deepEqual(await host.record(post.id), delivery);
+  assert.equal(
+    host.requests.filter((request) => request.url === CREATE_URL).length,
+    1,
+  );
 });
 
 test("scheduled content is announced only by the native due-publication action", async (t) => {
