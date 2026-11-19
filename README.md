@@ -43,3 +43,22 @@ Run `pnpm run deploy` to build and deploy through Wrangler. For an EmDash upgrad
 Production uses Cloudflare Access as EmDash's login provider. The Access identity must match an existing EmDash account; automatic provisioning and role synchronization are disabled. Set the protected application's AUD tag as the runtime `CF_ACCESS_AUDIENCE` Worker secret.
 
 Protect `/_emdash` and `/_emdash/*` with an owner-only Access policy. Allow public uploads through a more-specific Bypass application for `/_emdash/api/media/file/*`, not the broader media API. Access applications and policies are managed in Cloudflare, outside this repository.
+
+## Illustration prompt
+
+Create blog post featured illustrations with the prompt:
+
+```
+Create a wide, 2:1 editorial illustration for a personal technology blog.
+
+- Light, hand-drawn colored pencil and graphite on warm, off-white paper.
+- Whimsical, storybook-inspired imagery with subtle imperfections and natural pencil textures.
+- Soft, muted colors and restrained shading.
+- Simple compositions with generous negative space.
+- Use visual metaphors to convey technical concepts rather than illustrating their literal implementation.
+- Avoid text, labels, diagrams, dashboards, and overt technology iconography wherever possible.
+
+The illustration should feel like a thoughtful sketch accompanying an editorial essay, not a piece of corporate marketing. Evocative rather than explanatory.
+
+Here's the post excerpt: INSERT_EXCERPT
+```
