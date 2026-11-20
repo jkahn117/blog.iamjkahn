@@ -18,6 +18,23 @@ function shorten(text: string, graphemes: number, bytes: number): string {
   return result;
 }
 
+function announcementText(text: string): string {
+  if (shorten(text, 300, 3000) === text) return text;
+
+  let complete = "";
+  const sentences = new Intl.Segmenter("en", { granularity: "sentence" });
+  for (const { segment, index } of sentences.segment(text)) {
+    const candidate = text.slice(0, index + segment.length).trimEnd();
+    if (shorten(candidate, 300, 3000) !== candidate) break;
+    if (/[.!?。！？]["'”’)\]]*$/u.test(candidate)) complete = candidate;
+  }
+  if (complete) return complete;
+
+  const bounded = shorten(text, 299, 2997);
+  const words = bounded.replace(/\s+\S*$/u, "").trimEnd();
+  return (words || bounded.trimEnd()) + "…";
+}
+
 /** Convert the host's saved content shape, not unsaved editor fields. */
 export function announcement(
   content: Record<string, unknown>,
@@ -61,25 +78,9 @@ export function announcement(
     throw new Error("INVALID_DESTINATION");
   }
   const url = destination.href;
-  const intro = "Check out my new post: ";
-  const title = shorten(
-    fields.title.trim(),
-    300 - intro.length,
-    3000 - encoder.encode(intro).length,
+  const text = announcementText(
+    publicPost.excerpt?.trim() || fields.title.trim(),
   );
-  let text = intro + title;
-  const excerpt = publicPost.excerpt?.trim();
-  if (excerpt) {
-    const prefix = `${text}\n\n`;
-    const remaining = 300 - [...segmenter.segment(prefix)].length;
-    const bytes = 3000 - encoder.encode(prefix).length;
-    if (remaining > 1 && bytes > 3) {
-      let summary = shorten(excerpt, remaining, bytes);
-      if (summary !== excerpt)
-        summary = shorten(excerpt, remaining - 1, bytes - 3).trimEnd() + "…";
-      text = prefix + summary;
-    }
-  }
   const record: AppBskyFeedPost.Record = {
     $type: "app.bsky.feed.post",
     text,

@@ -792,7 +792,7 @@ test("announcements reuse native and preserved legacy URLs, external destination
     const payload = delivery.payload;
     lexicons.assertValidRecord("app.bsky.feed.post", payload);
     assert.equal(payload.facets, undefined);
-    assert.match(payload.text, /^Check out my new post: /);
+    assert.equal(payload.text, data.excerpt ?? "A fixture excerpt");
     assert.equal(payload.text.includes("https://"), false);
     const url = (payload.embed as { external: { uri: string } }).external.uri;
     assert.equal(
@@ -819,7 +819,7 @@ test("announcements reuse native and preserved legacy URLs, external destination
   }
 });
 
-test("announcement text includes the excerpt, handles missing excerpts and truncates Unicode safely", () => {
+test("announcement text uses the excerpt, falls back to the title and truncates at sentence or word boundaries", () => {
   const make = (title: string, excerpt?: string) =>
     announcement(
       {
@@ -830,15 +830,29 @@ test("announcement text includes the excerpt, handles missing excerpts and trunc
       },
       "2026-11-15T12:00:00Z",
     );
+  const short = make("A title", "  An excerpt  ");
+  assert.equal(short.text, "An excerpt");
   assert.equal(
-    make("A title", "An excerpt").text,
-    "Check out my new post: A title\n\nAn excerpt",
+    (short.embed as { external: { title: string } }).external.title,
+    "A title",
   );
-  assert.equal(make("A title").text, "Check out my new post: A title");
-  assert.equal(make("A title", "  ").text, "Check out my new post: A title");
+  assert.equal(make(" A title ").text, "A title");
+  assert.equal(make("A title", "  ").text, "A title");
+  assert.equal(make("A title", "x".repeat(300)).text, "x".repeat(300));
+  assert.equal(
+    make("A title", "First sentence. Second sentence! " + "word ".repeat(100))
+      .text,
+    "First sentence. Second sentence!",
+  );
+  assert.equal(
+    make("A title", "word ".repeat(59) + "unfinishedword ".repeat(10)).text,
+    "word ".repeat(59).trimEnd() + "…",
+  );
+  assert.equal(make("A title", "x".repeat(301)).text, "x".repeat(299) + "…");
   for (const record of [
     make("A title", "🧑🏽‍💻é日本語".repeat(400)),
-    make("🧑🏽‍💻".repeat(400), "An excerpt"),
+    make("🧑🏽‍💻".repeat(400)),
+    make("A title", ("a" + "\u0301".repeat(30)).repeat(400)),
   ]) {
     lexicons.assertValidRecord("app.bsky.feed.post", record);
     assert.ok(
@@ -1359,10 +1373,7 @@ test("Re-share checks deletion and rebuilds from the current published content a
   assert.equal(replacement.createdAt, original.createdAt);
   assert.equal(replacement.accountDid, original.accountDid);
   assert.equal(replacement.title, "Updated title");
-  assert.equal(
-    replacement.payload?.text,
-    "Check out my new post: Updated title\n\nUpdated excerpt",
-  );
+  assert.equal(replacement.payload?.text, "Updated excerpt");
   assert.ok(replacement.payload);
   assert.ok(
     (replacement.payload.embed as { external: { thumb: unknown } }).external
