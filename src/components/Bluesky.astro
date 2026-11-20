@@ -1,6 +1,6 @@
 ---
 import { BlueskyPost, type Post } from "@astro-community/astro-embed-bluesky";
-import { CacheHeaders, ONE_WEEK } from "cdn-cache-control";
+import { ONE_HOUR } from "cdn-cache-control";
 import { env } from "cloudflare:workers";
 
 import { getAgent } from "../lib/bluesky";
@@ -8,14 +8,19 @@ import { withCache } from "../lib/cache";
 
 export const prerender = false;
 
-const { actor, cacheTime = ONE_WEEK } = Astro.props;
+const { actor, cacheTime = ONE_HOUR } = Astro.props;
+
+// Cache upstream data only. Browsers must revalidate the rendered widget.
+Astro.response.headers.set("Cache-Control", "no-cache");
 
 let post: Post | undefined;
 
 const isDev = import.meta.env.DEV;
 
-// cache key - just needs to be unique
-const cacheKey = new Request(`https://cache.internal/bluesky/${actor}`);
+// New key bypasses entries written with the former seven-day lifetime.
+const cacheKey = new Request(
+  `https://cache.internal/bluesky/hourly-v1/${actor}`,
+);
 
 // Fetch the actor's most recent post from the Bluesky API.
 async function getFromBluesky(): Promise<Post | undefined> {
@@ -38,14 +43,6 @@ try {
   });
 } catch (err) {
   console.error("[🦋 Bluesky component]", err);
-}
-
-if (post) {
-  new CacheHeaders()
-    .swr()
-    .ttl(cacheTime)
-    .tag(["posts", `post-${actor}`])
-    .copyTo(Astro.response.headers);
 }
 ---
 

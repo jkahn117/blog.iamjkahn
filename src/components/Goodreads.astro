@@ -1,76 +1,32 @@
 ---
-import { CacheHeaders, ONE_WEEK } from "cdn-cache-control";
-import { XMLParser } from "fast-xml-parser";
+import { ONE_HOUR } from "cdn-cache-control";
 
 import { withCache } from "../lib/cache";
+import { getCurrentlyReading, type Book } from "../lib/goodreads";
 
 export const prerender = false;
 
-type Book = {
-  title: string;
-  author?: string;
-  pubDate: string;
-  goodreadsLink: string;
-  image?: string;
-};
+const { userId, cacheTime = ONE_HOUR } = Astro.props;
 
-const { userId, cacheTime = ONE_WEEK } = Astro.props;
+// Cache upstream data only. Browsers must revalidate the rendered widget.
+Astro.response.headers.set("Cache-Control", "no-cache");
 
 const isDev = import.meta.env.DEV;
 
 let book: Book | undefined;
 
-const cacheKey = new Request(`https://cache.internal/goodreads/${userId}`);
-
-// Goodreads returns a block of html, need to extract image
-// source for the book
-function extractImgSrc(html: string): string | undefined {
-  const match = html.match(/<img[^>]+src="([^"]+)"/);
-  return match?.[1];
-}
-
-function extractAuthor(html: string): string | undefined {
-  const match = html.match(/author:\s+([^<]+)<br/);
-  return match?.[1].trim();
-}
-
-// Fetch the user's currently reading book from GoodReads RSS feed
-async function getCurrentlyReading(): Promise<Book | undefined> {
-  const res = await fetch(
-    `https://www.goodreads.com/review/list_rss/${userId}?shelf=currently-reading`,
-  );
-  const xml = await res.text();
-  const parser = new XMLParser({ ignoreAttributes: false });
-  const feed = parser.parse(xml);
-  const current = feed?.rss?.channel?.item?.[0] ?? feed?.rss?.channel?.item;
-
-  if (!current) return undefined;
-
-  return {
-    title: current.title,
-    author: current["author_name"] ?? extractAuthor(current.description ?? ""),
-    pubDate: current.pubDate,
-    goodreadsLink: current.link,
-    image: extractImgSrc(current.description ?? ""),
-  };
-}
+const cacheKey = new Request(
+  `https://cache.internal/goodreads/widget-v1/${userId}`,
+);
 
 try {
-  book = await withCache(cacheKey, getCurrentlyReading, {
+  book = await withCache(cacheKey, () => getCurrentlyReading(userId), {
     isDev,
     cacheTime,
     ctx: Astro.locals.cfContext,
   });
 } catch (err) {
   console.error("[📚 Goodreads error]", err);
-}
-
-if (book) {
-  new CacheHeaders()
-    .swr()
-    .ttl(cacheTime)
-    .tag(["book", `book-${userId}`])
-    .copyTo(Astro.response.headers);
 }
 ---
 
