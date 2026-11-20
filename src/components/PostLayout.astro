@@ -94,6 +94,7 @@ const eras = tags.filter((tag) => tag.slug.startsWith("era-"));
           <Image
             image={featuredImage}
             class="mt-8 h-auto w-full rounded-3xl"
+            sizes="(min-width: 800px) 672px, (min-width: 640px) calc(100vw - 128px), calc(100vw - 32px)"
             priority
           />
         )}
