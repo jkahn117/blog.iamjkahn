@@ -1,7 +1,7 @@
 ---
 export const prerender = false;
 
-import { BookOpenIcon, BriefcaseIcon } from "@heroicons/react/24/outline";
+import { BriefcaseIcon } from "@heroicons/react/24/outline";
 import { getEmDashEntry, getSiteSettingsWithCacheHint } from "emdash";
 import { Blocks, defineBlockComponents, Image } from "emdash/ui";
 
@@ -12,7 +12,6 @@ import CardDescription from "@/components/Card/CardDescription.astro";
 import CardEyebrow from "@/components/Card/CardEyebrow.astro";
 import CardTitle from "@/components/Card/CardTitle.astro";
 import Container from "@/components/Container.astro";
-import Goodreads from "@/components/Goodreads.astro";
 import BlueskyIcon from "@/components/icons/BlueskyIcon.astro";
 import GitHubIcon from "@/components/icons/GitHubIcon.astro";
 import LinkedInIcon from "@/components/icons/LinkedInIcon.astro";
@@ -157,11 +156,6 @@ const blockComponents = defineBlockComponents<PageLayoutBlock>({
         <Widget>
           <WidgetTitle icon={BlueskyIcon}>Latest Post</WidgetTitle>
           <Bluesky actor={import.meta.env.PUBLIC_BLUESKY_HANDLE} server:defer />
-        </Widget>
-
-        <Widget>
-          <WidgetTitle icon={BookOpenIcon}>What I'm Reading</WidgetTitle>
-          <Goodreads userId="102451238-josh-k" server:defer />
         </Widget>
       </div>
     </div>

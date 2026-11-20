@@ -1,6 +1,5 @@
 ---
 import { BlueskyPost, type Post } from "@astro-community/astro-embed-bluesky";
-import { ONE_HOUR } from "cdn-cache-control";
 import { env } from "cloudflare:workers";
 
 import { getAgent } from "../lib/bluesky";
@@ -8,6 +7,7 @@ import { withCache } from "../lib/cache";
 
 export const prerender = false;
 
+const ONE_HOUR = 60 * 60;
 const { actor, cacheTime = ONE_HOUR } = Astro.props;
 
 // Cache upstream data only. Browsers must revalidate the rendered widget.

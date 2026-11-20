@@ -32,7 +32,6 @@
     "@tailwindcss/typography": "^0.5.20",
     "@tailwindcss/vite": "^4.3.3",
     "astro": "7.4.7",
-    "cdn-cache-control": "^1.3.1",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
     "emdash": "^1.5.0",

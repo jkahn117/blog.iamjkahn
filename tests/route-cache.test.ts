@@ -133,7 +133,6 @@ await test("hints and component CDN headers cannot cache excluded routes", async
     "/_emdash/api/content/posts",
     "/_emdash/api/auth/session",
     "/_server-islands/Bluesky",
-    "/_server-islands/Goodreads",
     "/posts/story",
     "/home",
     "/404",
