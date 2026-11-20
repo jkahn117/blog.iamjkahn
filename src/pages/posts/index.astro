@@ -6,6 +6,7 @@ import CardCta from "@/components/Card/CardCta.astro";
 import CardDescription from "@/components/Card/CardDescription.astro";
 import CardEyebrow from "@/components/Card/CardEyebrow.astro";
 import CardTitle from "@/components/Card/CardTitle.astro";
+import PostFilters from "@/components/PostFilters.astro";
 import SimpleLayout from "@/components/SimpleLayout.astro";
 import Base from "@/layouts/Base.astro";
 import { formatDate } from "@/lib/formatDate.ts";
@@ -23,33 +24,41 @@ if (Astro.cache?.enabled) Astro.cache.set(cacheHint);
     title="Collected posts from Blogger.com circa 2005 to today."
     intro="Long-form posts on technology, various musings, and a back catalog of posts over twenty plus years in chronological order."
   >
-    <div class="md:border-l md:border-zinc-100 md:pl-6 md:dark:border-zinc-700/40">
-      <div class="flex max-w-3xl flex-col space-y-16">
-        {posts.map((post) => (
-          <article class="md:grid md:grid-cols-4 md:items-baseline">
-            <Card class="md:col-span-3">
-              <CardTitle href={post.href}>{post.title}</CardTitle>
+    <PostFilters posts={posts}>
+      <div class="md:border-l md:border-zinc-100 md:pl-6 md:dark:border-zinc-700/40">
+        <div id="post-list" class="flex max-w-3xl flex-col gap-16">
+          {posts.map((post) => (
+            <article
+              data-post-terms={JSON.stringify({
+                categories: post.categories.map((term) => term.slug),
+                eras: post.eras.map((term) => term.slug),
+              })}
+              class="md:grid md:grid-cols-4 md:items-baseline"
+            >
+              <Card class="md:col-span-3">
+                <CardTitle href={post.href}>{post.title}</CardTitle>
+                <CardEyebrow
+                  as="time"
+                  datetime={post.date.toISOString()}
+                  class="md:hidden"
+                  decorate
+                >
+                  {formatDate(post.date)}
+                </CardEyebrow>
+                <CardDescription>{post.excerpt}</CardDescription>
+                <CardCta>Read post</CardCta>
+              </Card>
               <CardEyebrow
                 as="time"
                 datetime={post.date.toISOString()}
-                class="md:hidden"
-                decorate
+                class="mt-1 hidden md:block"
               >
                 {formatDate(post.date)}
               </CardEyebrow>
-              <CardDescription>{post.excerpt}</CardDescription>
-              <CardCta>Read post</CardCta>
-            </Card>
-            <CardEyebrow
-              as="time"
-              datetime={post.date.toISOString()}
-              class="mt-1 hidden md:block"
-            >
-              {formatDate(post.date)}
-            </CardEyebrow>
-          </article>
-        ))}
+            </article>
+          ))}
+        </div>
       </div>
-    </div>
+    </PostFilters>
   </SimpleLayout>
 </Base>

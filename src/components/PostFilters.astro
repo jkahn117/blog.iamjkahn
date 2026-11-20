@@ -1,0 +1,156 @@
+---
+import { getPostFilterOptions } from "@/lib/post-filters";
+import type { toPublicPost } from "@/lib/posts";
+
+interface Props {
+  posts: NonNullable<ReturnType<typeof toPublicPost>>[];
+}
+const { categories, eras } = getPostFilterOptions(Astro.props.posts);
+---
+
+<post-filters>
+  <div data-controls hidden class="mb-10">
+    <div class="flex flex-col items-start gap-4 sm:flex-row sm:items-end">
+      {[
+        {
+          name: "category",
+          label: "Category",
+          all: "All categories",
+          terms: categories,
+        },
+        { name: "era", label: "Era", all: "All eras", terms: eras },
+      ].map(({ name, label, all, terms }) => (
+        <label class="flex w-full min-w-0 flex-col gap-2 text-sm sm:w-auto sm:max-w-xs">
+          <span class="pl-4 text-zinc-500 dark:text-zinc-400">{label}</span>
+          <span class="relative block">
+            <select
+              name={name}
+              aria-controls="post-list"
+              class="w-full cursor-pointer appearance-none rounded-full bg-white/90 py-2 pr-10 pl-4 text-sm font-medium text-zinc-800 shadow-lg ring-1 shadow-zinc-800/5 ring-zinc-900/5 backdrop-blur transition hover:ring-zinc-900/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-500 data-active:text-teal-500 dark:bg-zinc-800/90 dark:text-zinc-200 dark:ring-white/10 dark:hover:ring-white/20 dark:data-active:text-teal-400"
+            >
+              <option value="">{all}</option>
+              {terms.map((term) => (
+                <option value={term.slug}>{term.label}</option>
+              ))}
+            </select>
+            <svg
+              viewBox="0 0 8 6"
+              fill="none"
+              aria-hidden="true"
+              class="pointer-events-none absolute top-1/2 right-4 h-auto w-2 -translate-y-1/2 stroke-zinc-500"
+            >
+              <path
+                d="M1.75 1.75 4 4.25l2.25-2.5"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </span>
+        </label>
+      ))}
+      <button
+        type="button"
+        data-clear
+        hidden
+        class="py-2 text-sm text-zinc-500 hover:text-teal-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-500 dark:text-zinc-400 dark:hover:text-teal-400"
+      >
+        Clear filters
+      </button>
+    </div>
+    <p data-status role="status" class="sr-only"></p>
+  </div>
+  <p data-empty hidden class="mb-10 text-sm text-zinc-500 dark:text-zinc-400">
+    No posts match these filters. Change a selection or clear filters.
+  </p>
+  <slot />
+</post-filters>
+
+<script>
+  import { matchesPostFilters, setPostFilterParams } from "@/lib/post-filters";
+
+  class PostFilters extends HTMLElement {
+    connectedCallback() {
+      const category = this.querySelector<HTMLSelectElement>(
+        'select[name="category"]',
+      )!;
+      const era = this.querySelector<HTMLSelectElement>('select[name="era"]')!;
+      const clear = this.querySelector<HTMLButtonElement>("[data-clear]")!;
+      const empty = this.querySelector<HTMLElement>("[data-empty]")!;
+      const status = this.querySelector<HTMLElement>("[data-status]")!;
+      const posts = [
+        ...this.querySelectorAll<HTMLElement>("[data-post-terms]"),
+      ].map((element) => ({
+        element,
+        terms: JSON.parse(element.dataset.postTerms!) as {
+          categories: string[];
+          eras: string[];
+        },
+      }));
+      const apply = () => {
+        let count = 0;
+        for (const { element, terms } of posts) {
+          const matches = matchesPostFilters(terms, category.value, era.value);
+          element.hidden = !matches;
+          if (matches) count++;
+        }
+        for (const select of [category, era])
+          select.toggleAttribute("data-active", !!select.value);
+        clear.hidden = !category.value && !era.value;
+        empty.hidden = count > 0;
+        status.textContent = `${count} ${count === 1 ? "post" : "posts"} shown`;
+      };
+      const restore = () => {
+        const params = new URL(location.href).searchParams;
+        for (const select of [category, era]) {
+          const value = params.get(select.name) ?? "";
+          select.value = [...select.options].some(
+            (option) => option.value === value,
+          )
+            ? value
+            : "";
+        }
+        apply();
+      };
+      const change = () => {
+        history.pushState(
+          null,
+          "",
+          setPostFilterParams(
+            new URL(location.href),
+            category.value,
+            era.value,
+          ),
+        );
+        apply();
+      };
+      category.addEventListener("change", change);
+      era.addEventListener("change", change);
+      clear.addEventListener("click", () => {
+        category.value = "";
+        era.value = "";
+        change();
+        category.focus();
+      });
+      window.addEventListener("popstate", restore);
+      this.cleanup = () => window.removeEventListener("popstate", restore);
+      restore();
+      this.querySelector<HTMLElement>("[data-controls]")!.hidden = false;
+    }
+    private cleanup?: () => void;
+    disconnectedCallback() {
+      this.cleanup?.();
+    }
+  }
+  customElements.define("post-filters", PostFilters);
+</script>
+
+<style>
+  post-filters {
+    display: block;
+  }
+  /* Responsive grid utilities must not override filtered articles' hidden state. */
+  post-filters :global([hidden]) {
+    display: none !important;
+  }
+</style>

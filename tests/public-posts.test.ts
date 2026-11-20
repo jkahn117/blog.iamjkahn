@@ -119,6 +119,30 @@ test("public conversion excludes drafts and keeps external posts pathless", () =
   );
 });
 
+test("public filter metadata includes categories and only era tags", () => {
+  const term = (slug: string) => ({
+    id: slug,
+    name: "tag",
+    slug,
+    label: slug,
+    children: [],
+    locale: "en",
+    translationGroup: slug,
+  });
+  const post = toPublicPost(
+    postFixture({
+      terms: {
+        category: [term("cloud")],
+        tag: [term("graphql"), term("era-aws")],
+      },
+    }),
+  );
+  assert.deepEqual(post?.categories, [{ slug: "cloud", label: "cloud" }]);
+  assert.deepEqual(post?.eras, [{ slug: "era-aws", label: "era-aws" }]);
+  assert.deepEqual(toPublicPost(postFixture())?.categories, []);
+  assert.deepEqual(toPublicPost(postFixture())?.eras, []);
+});
+
 // Fixture order records native ordering within equal publication timestamps.
 const publicArchive = archive
   .filter((entry) => entry.status === "published")

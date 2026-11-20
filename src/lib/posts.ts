@@ -46,6 +46,13 @@ export function toPublicPost(post: Post) {
     updatedAt: post.updatedAt,
     href,
     path: post.redirect_link ? null : path,
+    categories: (post.terms?.category ?? []).map(({ slug, label }) => ({
+      slug,
+      label,
+    })),
+    eras: (post.terms?.tag ?? [])
+      .filter((term) => term.slug.startsWith("era-"))
+      .map(({ slug, label }) => ({ slug, label })),
   };
 }
 
